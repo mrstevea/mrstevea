@@ -1,6 +1,14 @@
 import { addPropertyControls, ControlType } from "framer"
-import React, { useRef, useEffect, useCallback } from "react"
+import React, {
+    useRef,
+    useEffect,
+    useCallback,
+    useState,
+    useMemo,
+} from "react"
 import type { CSSProperties } from "react"
+
+// ─── Types ───────────────────────────────────────────────────────────────────
 
 interface Props {
     richText: React.ReactNode
@@ -14,7 +22,46 @@ interface Props {
     style?: CSSProperties
 }
 
-const HIGHLIGHT_CLASS = "cht-highlight"
+interface HighlightRect {
+    x: number
+    y: number
+    width: number
+    height: number
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/** Merge adjacent / overlapping rects on the same line into single spans. */
+function mergeRects(rects: HighlightRect[]): HighlightRect[] {
+    if (rects.length <= 1) return rects
+
+    const sorted = [...rects].sort((a, b) => a.y - b.y || a.x - b.x)
+    const merged: HighlightRect[] = [{ ...sorted[0] }]
+
+    for (let i = 1; i < sorted.length; i++) {
+        const cur = sorted[i]
+        const last = merged[merged.length - 1]
+
+        const sameLine =
+            Math.abs(cur.y - last.y) < 3 &&
+            Math.abs(cur.height - last.height) < 3
+        const adjacent = cur.x <= last.x + last.width + 2
+
+        if (sameLine && adjacent) {
+            const right = Math.max(
+                last.x + last.width,
+                cur.x + cur.width
+            )
+            last.width = right - last.x
+        } else {
+            merged.push({ ...cur })
+        }
+    }
+
+    return merged
+}
+
+// ─── Component ───────────────────────────────────────────────────────────────
 
 function CustomHighlightText({
     richText,
@@ -28,196 +75,191 @@ function CustomHighlightText({
     style,
 }: Props) {
     const containerRef = useRef<HTMLDivElement>(null)
-    const isAnimatingOut = useRef(false)
-    const animationTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const isSelecting = useRef(false)
+    const fadeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-    const unwrapHighlights = useCallback((container: HTMLElement) => {
-        const highlights = container.querySelectorAll(`.${HIGHLIGHT_CLASS}`)
-        highlights.forEach((span) => {
-            const parent = span.parentNode
-            if (!parent) return
-            while (span.firstChild) {
-                parent.insertBefore(span.firstChild, span)
-            }
-            parent.removeChild(span)
-            parent.normalize()
-        })
+    const [rects, setRects] = useState<HighlightRect[]>([])
+    const [fading, setFading] = useState(false)
+
+    // ── Compute overlay rects from current browser selection ──────────────
+
+    const computeRects = useCallback((): HighlightRect[] => {
+        const container = containerRef.current
+        if (!container) return []
+
+        const selection = window.getSelection()
+        if (!selection || selection.rangeCount === 0 || selection.isCollapsed)
+            return []
+
+        const range = selection.getRangeAt(0)
+        if (!container.contains(range.commonAncestorContainer)) return []
+
+        const containerBox = container.getBoundingClientRect()
+        const clientRects = range.getClientRects()
+
+        const mapped: HighlightRect[] = []
+        for (let i = 0; i < clientRects.length; i++) {
+            const r = clientRects[i]
+            if (r.width < 1) continue
+            mapped.push({
+                x: r.left - containerBox.left,
+                y: r.top - containerBox.top,
+                width: r.width,
+                height: r.height,
+            })
+        }
+
+        return mergeRects(mapped)
     }, [])
 
-    const clearHighlights = useCallback(
-        (animate: boolean) => {
-            const container = containerRef.current
-            if (!container) return
+    // ── Clear helpers ────────────────────────────────────────────────────
 
-            const highlights = container.querySelectorAll(
-                `.${HIGHLIGHT_CLASS}`
-            )
-            if (highlights.length === 0) return
+    const clearAnimated = useCallback(() => {
+        if (fadeTimer.current) clearTimeout(fadeTimer.current)
+        setFading(true)
+        fadeTimer.current = setTimeout(() => {
+            setRects([])
+            setFading(false)
+            fadeTimer.current = null
+        }, animationDuration)
+    }, [animationDuration])
 
-            if (animate && !isAnimatingOut.current) {
-                isAnimatingOut.current = true
-                highlights.forEach((span) => {
-                    const el = span as HTMLElement
-                    el.style.transition = `opacity ${animationDuration}ms ease-out, transform ${animationDuration}ms ease-out`
-                    el.style.opacity = "0"
-                    el.style.transform = "scaleY(0.95)"
-                })
+    const clearInstant = useCallback(() => {
+        if (fadeTimer.current) {
+            clearTimeout(fadeTimer.current)
+            fadeTimer.current = null
+        }
+        setFading(false)
+        setRects([])
+    }, [])
 
-                if (animationTimer.current) {
-                    clearTimeout(animationTimer.current)
-                }
-                animationTimer.current = setTimeout(() => {
-                    unwrapHighlights(container)
-                    isAnimatingOut.current = false
-                    animationTimer.current = null
-                }, animationDuration)
-            } else if (!animate) {
-                if (animationTimer.current) {
-                    clearTimeout(animationTimer.current)
-                    animationTimer.current = null
-                }
-                isAnimatingOut.current = false
-                unwrapHighlights(container)
-            }
-        },
-        [animationDuration, unwrapHighlights]
-    )
-
-    const applyHighlight = useCallback(
-        (range: Range) => {
-            const container = containerRef.current
-            if (!container) return
-
-            // Prevent nested highlights
-            const ancestor = range.commonAncestorContainer
-            const ancestorEl =
-                ancestor.nodeType === Node.ELEMENT_NODE
-                    ? (ancestor as Element)
-                    : ancestor.parentElement
-            if (ancestorEl?.closest(`.${HIGHLIGHT_CLASS}`)) return
-
-            // Remove existing highlights without animation for quick re-select
-            unwrapHighlights(container)
-
-            if (range.collapsed) return
-
-            try {
-                const fragment = range.extractContents()
-
-                // Strip any nested highlight spans from extracted content
-                const nested = fragment.querySelectorAll(
-                    `.${HIGHLIGHT_CLASS}`
-                )
-                nested.forEach((el) => {
-                    const parent = el.parentNode
-                    if (!parent) return
-                    while (el.firstChild) {
-                        parent.insertBefore(el.firstChild, el)
-                    }
-                    parent.removeChild(el)
-                })
-
-                const glowSize = Math.max(2, glowIntensity)
-                const glowSmall = Math.max(1, Math.round(glowIntensity / 3))
-
-                const span = document.createElement("span")
-                span.className = HIGHLIGHT_CLASS
-                Object.assign(span.style, {
-                    background: `linear-gradient(135deg, ${gradientStart}, ${gradientEnd})`,
-                    borderRadius: `${borderRadius}px`,
-                    boxShadow: `0 0 ${glowSize}px ${highlightColor}, 0 0 ${glowSmall}px ${highlightColor}`,
-                    padding: "2px 4px",
-                    margin: "0 -4px",
-                    display: "inline",
-                    boxDecorationBreak: "clone",
-                    WebkitBoxDecorationBreak: "clone",
-                    opacity: "0",
-                    transform: "scaleY(0.95)",
-                    transformOrigin: "center center",
-                    transition: `opacity ${animationDuration}ms ease-out, transform ${animationDuration}ms ease-out`,
-                    position: "relative",
-                })
-
-                span.appendChild(fragment)
-                range.insertNode(span)
-
-                // Double rAF to ensure the browser has painted the initial state
-                requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                        span.style.opacity = "1"
-                        span.style.transform = "scaleY(1)"
-                    })
-                })
-            } catch {
-                // Cross-boundary wrapping can fail — don't break the DOM
-            }
-        },
-        [
-            gradientStart,
-            gradientEnd,
-            highlightColor,
-            borderRadius,
-            animationDuration,
-            glowIntensity,
-            unwrapHighlights,
-        ]
-    )
+    // ── Live selection tracking ──────────────────────────────────────────
 
     useEffect(() => {
         const container = containerRef.current
         if (!container) return
 
-        const handleSelectionEnd = () => {
-            if (isAnimatingOut.current) return
-
-            const selection = window.getSelection()
-            if (!selection || selection.rangeCount === 0) return
-
-            const range = selection.getRangeAt(0)
-            if (!container.contains(range.commonAncestorContainer)) return
-
-            const selectedText = selection.toString().trim()
-            if (selectedText.length === 0) return
-
-            const clonedRange = range.cloneRange()
-            selection.removeAllRanges()
-            applyHighlight(clonedRange)
-        }
-
-        const handleClickOutside = (e: MouseEvent) => {
-            if (!container.contains(e.target as Node)) {
-                clearHighlights(true)
+        const updateFromSelection = () => {
+            const newRects = computeRects()
+            if (newRects.length > 0) {
+                // Cancel any in-progress fade-out — new selection takes over
+                if (fadeTimer.current) {
+                    clearTimeout(fadeTimer.current)
+                    fadeTimer.current = null
+                }
+                setFading(false)
+                setRects(newRects)
             }
         }
+
+        // ── selectionchange: fires in real-time during drag ──────────
+
+        const handleSelectionChange = () => {
+            updateFromSelection()
+        }
+
+        // ── mousedown inside: begin new selection ────────────────────
 
         const handleMouseDown = (e: MouseEvent) => {
             if (container.contains(e.target as Node)) {
-                const target = e.target as Element
-                if (target.closest(`.${HIGHLIGHT_CLASS}`)) {
-                    clearHighlights(true)
-                } else {
-                    clearHighlights(false)
-                }
+                isSelecting.current = true
+                // Don't clearInstant here — let the new selection
+                // rects replace the old ones seamlessly.
+                // If user just clicks (no drag), mouseup handles cleanup.
             }
         }
 
-        container.addEventListener("mouseup", handleSelectionEnd)
-        container.addEventListener("touchend", handleSelectionEnd)
+        // ── mouseup: finalise selection or clean up a plain click ────
+
+        const handleMouseUp = () => {
+            if (!isSelecting.current) return
+            isSelecting.current = false
+
+            // Small delay so the browser's final selectionchange fires first
+            requestAnimationFrame(() => {
+                const selection = window.getSelection()
+                if (!selection || selection.isCollapsed) {
+                    // Plain click inside — fade out existing highlight
+                    clearAnimated()
+                } else if (container.contains(selection.anchorNode)) {
+                    // Drag completed — snapshot final rects
+                    updateFromSelection()
+                }
+            })
+        }
+
+        // ── click outside: fade out and dismiss ──────────────────────
+
+        const handleClickOutside = (e: MouseEvent) => {
+            if (!container.contains(e.target as Node)) {
+                window.getSelection()?.removeAllRanges()
+                clearAnimated()
+            }
+        }
+
+        // ── touch support ────────────────────────────────────────────
+
+        const handleTouchStart = (e: TouchEvent) => {
+            if (container.contains(e.target as Node)) {
+                isSelecting.current = true
+            }
+        }
+
+        const handleTouchEnd = () => {
+            if (!isSelecting.current) return
+            isSelecting.current = false
+            requestAnimationFrame(() => {
+                const selection = window.getSelection()
+                if (!selection || selection.isCollapsed) {
+                    clearAnimated()
+                } else if (container.contains(selection.anchorNode)) {
+                    updateFromSelection()
+                }
+            })
+        }
+
+        document.addEventListener("selectionchange", handleSelectionChange)
         document.addEventListener("mousedown", handleMouseDown)
+        document.addEventListener("mouseup", handleMouseUp)
         document.addEventListener("click", handleClickOutside)
+        container.addEventListener("touchstart", handleTouchStart, {
+            passive: true,
+        })
+        container.addEventListener("touchend", handleTouchEnd)
 
         return () => {
-            container.removeEventListener("mouseup", handleSelectionEnd)
-            container.removeEventListener("touchend", handleSelectionEnd)
+            document.removeEventListener(
+                "selectionchange",
+                handleSelectionChange
+            )
             document.removeEventListener("mousedown", handleMouseDown)
+            document.removeEventListener("mouseup", handleMouseUp)
             document.removeEventListener("click", handleClickOutside)
-            if (animationTimer.current) {
-                clearTimeout(animationTimer.current)
-            }
+            container.removeEventListener("touchstart", handleTouchStart)
+            container.removeEventListener("touchend", handleTouchEnd)
+            if (fadeTimer.current) clearTimeout(fadeTimer.current)
         }
-    }, [applyHighlight, clearHighlights])
+    }, [computeRects, clearAnimated, clearInstant])
 
-    // Generate a scoped ID to avoid style collisions across instances
+    // ── Derived values ───────────────────────────────────────────────────
+
+    const hasRects = rects.length > 0
+    const showOverlay = hasRects || fading
+
+    const glowSize = Math.max(2, glowIntensity)
+    const glowSmall = Math.max(1, Math.round(glowIntensity / 3))
+
+    const gradient = useMemo(
+        () => `linear-gradient(135deg, ${gradientStart}, ${gradientEnd})`,
+        [gradientStart, gradientEnd]
+    )
+    const glow = useMemo(
+        () =>
+            `0 0 ${glowSize}px ${highlightColor}, 0 0 ${glowSmall}px ${highlightColor}`,
+        [glowSize, glowSmall, highlightColor]
+    )
+
+    // Scoped class ID to avoid style collisions between instances
     const scopeId = useRef(
         `cht-${Math.random().toString(36).slice(2, 8)}`
     ).current
@@ -232,6 +274,18 @@ function CustomHighlightText({
         wordBreak: "break-word",
         overflowWrap: "break-word",
         ...style,
+    }
+
+    // ── Overlay wrapper: animates opacity for enter / leave ──────────────
+
+    const overlayStyle: CSSProperties = {
+        position: "absolute",
+        inset: 0,
+        pointerEvents: "none",
+        opacity: hasRects && !fading ? 1 : 0,
+        transform: hasRects && !fading ? "scaleY(1)" : "scaleY(0.98)",
+        transition: `opacity ${animationDuration}ms ease-out, transform ${animationDuration}ms ease-out`,
+        willChange: showOverlay ? "opacity, transform" : "auto",
     }
 
     return (
@@ -257,10 +311,35 @@ function CustomHighlightText({
                 style={containerStyle}
             >
                 {richText}
+
+                {showOverlay && (
+                    <div style={overlayStyle} aria-hidden="true">
+                        {rects.map((rect, i) => (
+                            <div
+                                key={i}
+                                style={{
+                                    position: "absolute",
+                                    left: rect.x - 3,
+                                    top: rect.y,
+                                    width: rect.width + 6,
+                                    height: rect.height,
+                                    background: gradient,
+                                    borderRadius: `${borderRadius}px`,
+                                    boxShadow: glow,
+                                    boxDecorationBreak: "clone" as const,
+                                    WebkitBoxDecorationBreak:
+                                        "clone" as const,
+                                }}
+                            />
+                        ))}
+                    </div>
+                )}
             </div>
         </>
     )
 }
+
+// ─── Framer Property Controls ────────────────────────────────────────────────
 
 addPropertyControls(CustomHighlightText, {
     richText: {
