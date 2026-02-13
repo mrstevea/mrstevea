@@ -1,39 +1,48 @@
 import { addPropertyControls, ControlType } from "framer"
-import { useRef, useEffect, useCallback } from "react"
+import React, { useRef, useEffect, useCallback } from "react"
 import type { CSSProperties } from "react"
 
 interface Props {
-    text: string
-    fontSize: number
-    fontWeight: number
+    richText: React.ReactNode
     highlightColor: string
     gradientStart: string
     gradientEnd: string
-    textColor: string
     maxWidth: number
     borderRadius: number
-    lineHeight: number
-    fontFamily: string
+    animationDuration: number
+    glowIntensity: number
+    style?: CSSProperties
 }
 
-const HIGHLIGHT_CLASS = "custom-highlight"
-const ANIMATION_DURATION = 300
+const HIGHLIGHT_CLASS = "cht-highlight"
 
 function CustomHighlightText({
-    text = "Highlight any portion of this text to see a beautiful custom selection effect. This component replaces the default browser highlight with a smooth, animated gradient overlay that feels premium and modern.",
-    fontSize = 18,
-    fontWeight = 400,
+    richText,
     highlightColor = "rgba(124, 58, 237, 0.15)",
     gradientStart = "rgba(124, 58, 237, 0.18)",
     gradientEnd = "rgba(59, 130, 246, 0.18)",
-    textColor = "#1a1a2e",
     maxWidth = 640,
     borderRadius = 8,
-    lineHeight = 1.7,
-    fontFamily = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    animationDuration = 300,
+    glowIntensity = 12,
+    style,
 }: Props) {
     const containerRef = useRef<HTMLDivElement>(null)
     const isAnimatingOut = useRef(false)
+    const animationTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+    const unwrapHighlights = useCallback((container: HTMLElement) => {
+        const highlights = container.querySelectorAll(`.${HIGHLIGHT_CLASS}`)
+        highlights.forEach((span) => {
+            const parent = span.parentNode
+            if (!parent) return
+            while (span.firstChild) {
+                parent.insertBefore(span.firstChild, span)
+            }
+            parent.removeChild(span)
+            parent.normalize()
+        })
+    }, [])
 
     const clearHighlights = useCallback(
         (animate: boolean) => {
@@ -49,34 +58,30 @@ function CustomHighlightText({
                 isAnimatingOut.current = true
                 highlights.forEach((span) => {
                     const el = span as HTMLElement
-                    el.style.transition = `opacity ${ANIMATION_DURATION}ms ease-out, transform ${ANIMATION_DURATION}ms ease-out`
+                    el.style.transition = `opacity ${animationDuration}ms ease-out, transform ${animationDuration}ms ease-out`
                     el.style.opacity = "0"
                     el.style.transform = "scaleY(0.95)"
                 })
 
-                setTimeout(() => {
+                if (animationTimer.current) {
+                    clearTimeout(animationTimer.current)
+                }
+                animationTimer.current = setTimeout(() => {
                     unwrapHighlights(container)
                     isAnimatingOut.current = false
-                }, ANIMATION_DURATION)
+                    animationTimer.current = null
+                }, animationDuration)
             } else if (!animate) {
+                if (animationTimer.current) {
+                    clearTimeout(animationTimer.current)
+                    animationTimer.current = null
+                }
+                isAnimatingOut.current = false
                 unwrapHighlights(container)
             }
         },
-        []
+        [animationDuration, unwrapHighlights]
     )
-
-    const unwrapHighlights = (container: HTMLElement) => {
-        const highlights = container.querySelectorAll(`.${HIGHLIGHT_CLASS}`)
-        highlights.forEach((span) => {
-            const parent = span.parentNode
-            if (!parent) return
-            while (span.firstChild) {
-                parent.insertBefore(span.firstChild, span)
-            }
-            parent.removeChild(span)
-            parent.normalize()
-        })
-    }
 
     const applyHighlight = useCallback(
         (range: Range) => {
@@ -94,32 +99,33 @@ function CustomHighlightText({
             // Remove existing highlights without animation for quick re-select
             unwrapHighlights(container)
 
-            // Don't wrap if selection is empty
             if (range.collapsed) return
 
             try {
-                // Handle selections that may span multiple nodes
                 const fragment = range.extractContents()
 
-                // Remove any nested highlight spans from the extracted fragment
-                const nestedHighlights = fragment.querySelectorAll(
+                // Strip any nested highlight spans from extracted content
+                const nested = fragment.querySelectorAll(
                     `.${HIGHLIGHT_CLASS}`
                 )
-                nestedHighlights.forEach((nested) => {
-                    const parent = nested.parentNode
+                nested.forEach((el) => {
+                    const parent = el.parentNode
                     if (!parent) return
-                    while (nested.firstChild) {
-                        parent.insertBefore(nested.firstChild, nested)
+                    while (el.firstChild) {
+                        parent.insertBefore(el.firstChild, el)
                     }
-                    parent.removeChild(nested)
+                    parent.removeChild(el)
                 })
 
-                const highlightSpan = document.createElement("span")
-                highlightSpan.className = HIGHLIGHT_CLASS
-                Object.assign(highlightSpan.style, {
+                const glowSize = Math.max(2, glowIntensity)
+                const glowSmall = Math.max(1, Math.round(glowIntensity / 3))
+
+                const span = document.createElement("span")
+                span.className = HIGHLIGHT_CLASS
+                Object.assign(span.style, {
                     background: `linear-gradient(135deg, ${gradientStart}, ${gradientEnd})`,
                     borderRadius: `${borderRadius}px`,
-                    boxShadow: `0 0 12px ${highlightColor}, 0 0 4px ${highlightColor}`,
+                    boxShadow: `0 0 ${glowSize}px ${highlightColor}, 0 0 ${glowSmall}px ${highlightColor}`,
                     padding: "2px 4px",
                     margin: "0 -4px",
                     display: "inline",
@@ -128,26 +134,33 @@ function CustomHighlightText({
                     opacity: "0",
                     transform: "scaleY(0.95)",
                     transformOrigin: "center center",
-                    transition: `opacity ${ANIMATION_DURATION}ms ease-out, transform ${ANIMATION_DURATION}ms ease-out`,
-                    position: "relative" as const,
-                } satisfies Partial<CSSProperties> & Record<string, string>)
+                    transition: `opacity ${animationDuration}ms ease-out, transform ${animationDuration}ms ease-out`,
+                    position: "relative",
+                })
 
-                highlightSpan.appendChild(fragment)
-                range.insertNode(highlightSpan)
+                span.appendChild(fragment)
+                range.insertNode(span)
 
-                // Trigger animation on next frame
+                // Double rAF to ensure the browser has painted the initial state
                 requestAnimationFrame(() => {
                     requestAnimationFrame(() => {
-                        highlightSpan.style.opacity = "1"
-                        highlightSpan.style.transform = "scaleY(1)"
+                        span.style.opacity = "1"
+                        span.style.transform = "scaleY(1)"
                     })
                 })
             } catch {
-                // If wrapping fails (e.g. cross-element boundary issues),
-                // silently fail rather than breaking the DOM
+                // Cross-boundary wrapping can fail — don't break the DOM
             }
         },
-        [gradientStart, gradientEnd, highlightColor, borderRadius]
+        [
+            gradientStart,
+            gradientEnd,
+            highlightColor,
+            borderRadius,
+            animationDuration,
+            glowIntensity,
+            unwrapHighlights,
+        ]
     )
 
     useEffect(() => {
@@ -161,15 +174,11 @@ function CustomHighlightText({
             if (!selection || selection.rangeCount === 0) return
 
             const range = selection.getRangeAt(0)
-
-            // Ensure selection is inside this component
             if (!container.contains(range.commonAncestorContainer)) return
 
-            // Check for non-empty selection
             const selectedText = selection.toString().trim()
             if (selectedText.length === 0) return
 
-            // Clone range and apply highlight
             const clonedRange = range.cloneRange()
             selection.removeAllRanges()
             applyHighlight(clonedRange)
@@ -182,15 +191,12 @@ function CustomHighlightText({
         }
 
         const handleMouseDown = (e: MouseEvent) => {
-            // If clicking inside the container (starting a new selection),
-            // clear existing highlights immediately
             if (container.contains(e.target as Node)) {
                 const target = e.target as Element
-                if (!target.closest(`.${HIGHLIGHT_CLASS}`)) {
-                    clearHighlights(false)
-                } else {
-                    // Clicked on existing highlight — clear it
+                if (target.closest(`.${HIGHLIGHT_CLASS}`)) {
                     clearHighlights(true)
+                } else {
+                    clearHighlights(false)
                 }
             }
         }
@@ -205,74 +211,63 @@ function CustomHighlightText({
             container.removeEventListener("touchend", handleSelectionEnd)
             document.removeEventListener("mousedown", handleMouseDown)
             document.removeEventListener("click", handleClickOutside)
+            if (animationTimer.current) {
+                clearTimeout(animationTimer.current)
+            }
         }
     }, [applyHighlight, clearHighlights])
 
+    // Generate a scoped ID to avoid style collisions across instances
+    const scopeId = useRef(
+        `cht-${Math.random().toString(36).slice(2, 8)}`
+    ).current
+
     const containerStyle: CSSProperties = {
-        maxWidth: `${maxWidth}px`,
+        maxWidth: maxWidth > 0 ? `${maxWidth}px` : "none",
         width: "100%",
-        fontSize: `${fontSize}px`,
-        fontWeight,
-        color: textColor,
-        lineHeight,
-        fontFamily,
         WebkitUserSelect: "text",
         userSelect: "text",
         cursor: "text",
         position: "relative",
         wordBreak: "break-word",
         overflowWrap: "break-word",
+        ...style,
     }
 
     return (
         <>
             <style>{`
-                .custom-highlight-container::selection,
-                .custom-highlight-container *::selection {
+                .${scopeId}::selection,
+                .${scopeId} *::selection {
                     background: transparent !important;
                     color: inherit !important;
                 }
-                .custom-highlight-container::-moz-selection,
-                .custom-highlight-container *::-moz-selection {
+                .${scopeId}::-moz-selection,
+                .${scopeId} *::-moz-selection {
                     background: transparent !important;
                     color: inherit !important;
+                }
+                .${scopeId} p {
+                    margin: 0;
                 }
             `}</style>
             <div
                 ref={containerRef}
-                className="custom-highlight-container"
+                className={scopeId}
                 style={containerStyle}
             >
-                {text}
+                {richText}
             </div>
         </>
     )
 }
 
 addPropertyControls(CustomHighlightText, {
-    text: {
-        type: ControlType.String,
+    richText: {
+        type: ControlType.RichText,
         title: "Text",
         defaultValue:
-            "Highlight any portion of this text to see a beautiful custom selection effect. This component replaces the default browser highlight with a smooth, animated gradient overlay that feels premium and modern.",
-        displayTextArea: true,
-    },
-    fontSize: {
-        type: ControlType.Number,
-        title: "Font Size",
-        defaultValue: 18,
-        min: 10,
-        max: 72,
-        step: 1,
-        unit: "px",
-    },
-    fontWeight: {
-        type: ControlType.Number,
-        title: "Font Weight",
-        defaultValue: 400,
-        min: 100,
-        max: 900,
-        step: 100,
+            '<h2 style="font-size:28px;font-weight:700;margin-bottom:12px">Custom Highlight Text</h2><p style="font-size:18px;line-height:1.7;color:#1a1a2e">Highlight any portion of this text to see a beautiful custom selection effect. This component replaces the default browser highlight with a smooth, animated gradient overlay that feels premium and modern.</p><p style="font-size:18px;line-height:1.7;color:#1a1a2e">Try selecting across <strong>bold text</strong>, <em>italic text</em>, or even <a href="#">links</a> — the highlight adapts seamlessly to inline formatting.</p>',
     },
     highlightColor: {
         type: ControlType.Color,
@@ -289,19 +284,15 @@ addPropertyControls(CustomHighlightText, {
         title: "Gradient End",
         defaultValue: "rgba(59, 130, 246, 0.18)",
     },
-    textColor: {
-        type: ControlType.Color,
-        title: "Text Color",
-        defaultValue: "#1a1a2e",
-    },
     maxWidth: {
         type: ControlType.Number,
         title: "Max Width",
         defaultValue: 640,
-        min: 200,
-        max: 1200,
+        min: 0,
+        max: 1400,
         step: 10,
         unit: "px",
+        description: "Set to 0 for no max width",
     },
     borderRadius: {
         type: ControlType.Number,
@@ -312,19 +303,23 @@ addPropertyControls(CustomHighlightText, {
         step: 1,
         unit: "px",
     },
-    lineHeight: {
+    animationDuration: {
         type: ControlType.Number,
-        title: "Line Height",
-        defaultValue: 1.7,
-        min: 1,
-        max: 3,
-        step: 0.1,
+        title: "Anim Duration",
+        defaultValue: 300,
+        min: 100,
+        max: 800,
+        step: 50,
+        unit: "ms",
     },
-    fontFamily: {
-        type: ControlType.String,
-        title: "Font Family",
-        defaultValue:
-            "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    glowIntensity: {
+        type: ControlType.Number,
+        title: "Glow Size",
+        defaultValue: 12,
+        min: 0,
+        max: 30,
+        step: 1,
+        unit: "px",
     },
 })
 
