@@ -13,6 +13,7 @@ import type { CSSProperties } from "react"
 interface Props {
     richText: React.ReactNode
     textColor: string
+    fontSize: number
     highlightColor: string
     gradientStart: string
     gradientEnd: string
@@ -67,6 +68,7 @@ function mergeRects(rects: HighlightRect[]): HighlightRect[] {
 function CustomHighlightText({
     richText,
     textColor = "#1a1a2e",
+    fontSize = 18,
     highlightColor = "rgba(124, 58, 237, 0.15)",
     gradientStart = "rgba(124, 58, 237, 0.18)",
     gradientEnd = "rgba(59, 130, 246, 0.18)",
@@ -270,6 +272,7 @@ function CustomHighlightText({
         maxWidth: maxWidth > 0 ? `${maxWidth}px` : "none",
         width: "100%",
         color: textColor,
+        fontSize: `${fontSize}px`,
         WebkitUserSelect: "text",
         userSelect: "text",
         cursor: "text",
@@ -349,12 +352,21 @@ addPropertyControls(CustomHighlightText, {
         type: ControlType.RichText,
         title: "Text",
         defaultValue:
-            '<h2 style="font-size:28px;font-weight:700;margin-bottom:12px">Custom Highlight Text</h2><p style="font-size:18px;line-height:1.7">Highlight any portion of this text to see a beautiful custom selection effect. This component replaces the default browser highlight with a smooth, animated gradient overlay that feels premium and modern.</p><p style="font-size:18px;line-height:1.7">Try selecting across <strong>bold text</strong>, <em>italic text</em>, or even <a href="#">links</a> — the highlight adapts seamlessly to inline formatting.</p>',
+            '<h2 style="font-weight:700;margin-bottom:12px">Custom Highlight Text</h2><p style="line-height:1.7">Highlight any portion of this text to see a beautiful custom selection effect. This component replaces the default browser highlight with a smooth, animated gradient overlay that feels premium and modern.</p><p style="line-height:1.7">Try selecting across <strong>bold text</strong>, <em>italic text</em>, or even <a href="#">links</a> — the highlight adapts seamlessly to inline formatting.</p>',
     },
     textColor: {
         type: ControlType.Color,
         title: "Text Color",
         defaultValue: "#1a1a2e",
+    },
+    fontSize: {
+        type: ControlType.Number,
+        title: "Font Size",
+        defaultValue: 18,
+        min: 10,
+        max: 72,
+        step: 1,
+        unit: "px",
     },
     highlightColor: {
         type: ControlType.Color,
