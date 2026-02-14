@@ -21,14 +21,17 @@ interface FAQAccordionProps {
     borderColor: string
 
     // Question typography
+    questionFontFamily: string
     questionFontSize: number
     questionFontWeight: number
     questionColor: string
 
     // Answer typography
+    answerFontFamily: string
     answerFontSize: number
     answerFontWeight: number
     answerColor: string
+    answerLinkColor: string
 
     // Style
     backgroundColor: string
@@ -50,18 +53,48 @@ interface FAQAccordionProps {
 
 // ─── Default FAQ data ────────────────────────────────────────────────────────
 
+// ─── Font options for Framer property dropdowns ─────────────────────────────
+
+const fontOptions = [
+    "Inter, sans-serif",
+    "Arial, sans-serif",
+    "Helvetica, sans-serif",
+    "Georgia, serif",
+    "Times New Roman, serif",
+    "Courier New, monospace",
+    "Verdana, sans-serif",
+    "Trebuchet MS, sans-serif",
+    "Palatino, serif",
+    "Garamond, serif",
+    "system-ui, sans-serif",
+]
+
+const fontOptionTitles = [
+    "Inter",
+    "Arial",
+    "Helvetica",
+    "Georgia",
+    "Times New Roman",
+    "Courier New",
+    "Verdana",
+    "Trebuchet MS",
+    "Palatino",
+    "Garamond",
+    "System UI",
+]
+
 const defaultItems: FAQItem[] = [
     {
         question: "What is this component?",
-        answer: "This is a fully customizable FAQ Accordion built for Framer. You can edit all styles, colors, typography, and content directly from the property panel.",
+        answer: "This is a <b>fully customizable</b> FAQ Accordion built for Framer. You can edit all styles, colors, typography, and content directly from the property panel.",
     },
     {
         question: "How do I customize the content?",
-        answer: "Click on the component, then use the property controls on the right panel in Framer to add, edit, or remove FAQ items.",
+        answer: "Click on the component, then use the <em>property controls</em> on the right panel in Framer to add, edit, or remove FAQ items. Learn more at <a href='https://framer.com' target='_blank'>Framer</a>.",
     },
     {
-        question: "Can I change the animations?",
-        answer: "The component uses smooth height and opacity transitions powered by Framer Motion. The animation duration and easing are built in for a polished feel.",
+        question: "Can I use rich text in answers?",
+        answer: "Yes! Answers support <b>bold</b>, <em>italic</em>, <u>underline</u>, <a href='#'>links</a>, and <br/><br/>line breaks. Use standard HTML tags in the answer field.",
     },
 ]
 
@@ -71,17 +104,21 @@ const defaultItems: FAQItem[] = [
 
 function AnimatedPanel({
     isOpen,
-    children,
+    html,
+    answerFontFamily,
     answerFontSize,
     answerFontWeight,
     answerColor,
+    answerLinkColor,
     padding,
 }: {
     isOpen: boolean
-    children: React.ReactNode
+    html: string
+    answerFontFamily: string
     answerFontSize: number
     answerFontWeight: number
     answerColor: string
+    answerLinkColor: string
     padding: number
 }) {
     const contentRef = useRef<HTMLDivElement>(null)
@@ -91,7 +128,20 @@ function AnimatedPanel({
         if (contentRef.current) {
             setMeasuredHeight(contentRef.current.scrollHeight)
         }
-    }, [children, isOpen])
+    }, [html, isOpen])
+
+    // Scoped rich text styles injected via a <style> tag per panel
+    const richTextCSS = `
+        .faq-answer a { color: ${answerLinkColor}; text-decoration: underline; transition: opacity 0.2s; }
+        .faq-answer a:hover { opacity: 0.7; }
+        .faq-answer b, .faq-answer strong { font-weight: 700; }
+        .faq-answer em, .faq-answer i { font-style: italic; }
+        .faq-answer u { text-decoration: underline; }
+        .faq-answer ul, .faq-answer ol { margin: 8px 0; padding-left: 20px; }
+        .faq-answer li { margin-bottom: 4px; }
+        .faq-answer p { margin: 0 0 8px 0; }
+        .faq-answer p:last-child { margin-bottom: 0; }
+    `
 
     return (
         <motion.div
@@ -106,18 +156,20 @@ function AnimatedPanel({
             }}
             style={{ overflow: "hidden" }}
         >
+            <style>{richTextCSS}</style>
             <div
                 ref={contentRef}
+                className="faq-answer"
                 style={{
                     padding: `0 ${padding}px ${padding}px ${padding}px`,
+                    fontFamily: answerFontFamily,
                     fontSize: answerFontSize,
                     fontWeight: answerFontWeight,
                     color: answerColor,
                     lineHeight: 1.6,
                 }}
-            >
-                {children}
-            </div>
+                dangerouslySetInnerHTML={{ __html: html }}
+            />
         </motion.div>
     )
 }
@@ -173,12 +225,15 @@ export function FAQAccordion(props: FAQAccordionProps) {
         borderRadius = 12,
         borderWidth = 1,
         borderColor = "#e2e2e2",
+        questionFontFamily = "Inter, sans-serif",
         questionFontSize = 16,
         questionFontWeight = 600,
         questionColor = "#1a1a1a",
+        answerFontFamily = "Inter, sans-serif",
         answerFontSize = 15,
         answerFontWeight = 400,
         answerColor = "#555555",
+        answerLinkColor = "#0066cc",
         backgroundColor = "#ffffff",
         activeBackgroundColor = "#f9f9f9",
         hoverBackgroundColor = "#fafafa",
@@ -222,8 +277,6 @@ export function FAQAccordion(props: FAQAccordionProps) {
         flexDirection: "column",
         gap: gap,
         width: "100%",
-        fontFamily:
-            '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
     }
 
     return (
@@ -296,6 +349,7 @@ export function FAQAccordion(props: FAQAccordionProps) {
                         >
                             <span
                                 style={{
+                                    fontFamily: questionFontFamily,
                                     fontSize: questionFontSize,
                                     fontWeight: questionFontWeight,
                                     color: questionColor,
@@ -316,16 +370,17 @@ export function FAQAccordion(props: FAQAccordionProps) {
                             )}
                         </div>
 
-                        {/* Animated answer panel */}
+                        {/* Animated answer panel (renders HTML rich text) */}
                         <AnimatedPanel
                             isOpen={isOpen}
+                            html={item.answer}
+                            answerFontFamily={answerFontFamily}
                             answerFontSize={answerFontSize}
                             answerFontWeight={answerFontWeight}
                             answerColor={answerColor}
+                            answerLinkColor={answerLinkColor}
                             padding={padding}
-                        >
-                            {item.answer}
-                        </AnimatedPanel>
+                        />
                     </div>
                 )
             })}
@@ -342,12 +397,15 @@ FAQAccordion.defaultProps = {
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#e2e2e2",
+    questionFontFamily: "Inter, sans-serif",
     questionFontSize: 16,
     questionFontWeight: 600,
     questionColor: "#1a1a1a",
+    answerFontFamily: "Inter, sans-serif",
     answerFontSize: 15,
     answerFontWeight: 400,
     answerColor: "#555555",
+    answerLinkColor: "#0066cc",
     backgroundColor: "#ffffff",
     activeBackgroundColor: "#f9f9f9",
     hoverBackgroundColor: "#fafafa",
@@ -381,6 +439,8 @@ addPropertyControls(FAQAccordion, {
                     title: "Answer",
                     defaultValue: "Your answer here.",
                     displayTextArea: true,
+                    description:
+                        "Supports HTML: <b>, <em>, <u>, <a href='...'>, <br/>, <ul>, <ol>, <li>, <p>",
                 },
             },
         },
@@ -429,6 +489,13 @@ addPropertyControls(FAQAccordion, {
 
     // ── Question Typography ──────────────────────────────────────────────
 
+    questionFontFamily: {
+        type: ControlType.Enum,
+        title: "Q Font",
+        options: fontOptions,
+        optionTitles: fontOptionTitles,
+        defaultValue: "Inter, sans-serif",
+    },
     questionFontSize: {
         type: ControlType.Number,
         title: "Q Font Size",
@@ -453,6 +520,13 @@ addPropertyControls(FAQAccordion, {
 
     // ── Answer Typography ────────────────────────────────────────────────
 
+    answerFontFamily: {
+        type: ControlType.Enum,
+        title: "A Font",
+        options: fontOptions,
+        optionTitles: fontOptionTitles,
+        defaultValue: "Inter, sans-serif",
+    },
     answerFontSize: {
         type: ControlType.Number,
         title: "A Font Size",
@@ -473,6 +547,11 @@ addPropertyControls(FAQAccordion, {
         type: ControlType.Color,
         title: "A Color",
         defaultValue: "#555555",
+    },
+    answerLinkColor: {
+        type: ControlType.Color,
+        title: "A Link Color",
+        defaultValue: "#0066cc",
     },
 
     // ── Style ────────────────────────────────────────────────────────────
