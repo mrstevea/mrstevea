@@ -1,6 +1,5 @@
 import { addPropertyControls, ControlType } from "framer"
-import { motion } from "framer-motion"
-import React, { CSSProperties } from "react"
+import React, { useMemo, CSSProperties } from "react"
 
 // ─────────────────────────────────────────────────────────────
 // Cinematic Logo Animation
@@ -9,10 +8,11 @@ import React, { CSSProperties } from "react"
 // logo shape (not the bounding box) from left to right, then
 // loops seamlessly with a pause between each pass.
 //
+// Uses pure CSS @keyframes animation on the compositor thread
+// for buttery smooth 60fps motion — no JS animation ticks.
+//
 // The beam is CSS-masked to the logo's alpha channel so it only
 // appears on the actual letterforms / icon, not empty space.
-//
-// GPU-accelerated (transform-only), no layout reflow.
 // ─────────────────────────────────────────────────────────────
 
 interface Props {
@@ -36,6 +36,18 @@ export default function CinematicLogoAnimation(props: Props) {
         style,
     } = props
 
+    // Total cycle = sweep + pause. The sweep occupies a fraction
+    // of the full cycle so the pause is handled inside the keyframe
+    // (the beam sits offscreen for the remaining %).
+    const totalDuration = speed + delay
+    const sweepPct = (speed / totalDuration) * 100
+
+    // Unique ID so multiple instances don't clash
+    const id = useMemo(
+        () => "beam_" + Math.random().toString(36).slice(2, 8),
+        []
+    )
+
     if (!image) {
         return (
             <div
@@ -51,24 +63,39 @@ export default function CinematicLogoAnimation(props: Props) {
                     ...style,
                 }}
             >
-                Upload a logo image →
+                Upload a logo image
             </div>
         )
     }
 
-    // Beam gradient — soft feathered edges, subtle peak
+    // Beam gradient — wide, soft feathered edges
     const beam = `linear-gradient(
         90deg,
         transparent 0%,
-        rgba(255,255,255,${intensity * 0.15}) 20%,
-        rgba(255,255,255,${intensity * 0.5}) 40%,
+        rgba(255,255,255,${intensity * 0.1}) 15%,
+        rgba(255,255,255,${intensity * 0.35}) 35%,
         rgba(255,255,255,${intensity}) 50%,
-        rgba(255,255,255,${intensity * 0.5}) 60%,
-        rgba(255,255,255,${intensity * 0.15}) 80%,
+        rgba(255,255,255,${intensity * 0.35}) 65%,
+        rgba(255,255,255,${intensity * 0.1}) 85%,
         transparent 100%
     )`
 
-    // Mask the entire effect layer to the logo silhouette
+    // CSS keyframes: sweep from -50% to 150%, then hold offscreen
+    // for the pause portion. Uses translate3d for GPU compositing.
+    const keyframes = `
+        @keyframes ${id} {
+            0% {
+                transform: translate3d(-50%, 0, 0);
+            }
+            ${sweepPct}% {
+                transform: translate3d(150%, 0, 0);
+            }
+            100% {
+                transform: translate3d(150%, 0, 0);
+            }
+        }
+    `
+
     const logoMask: CSSProperties = {
         WebkitMaskImage: `url(${image})`,
         maskImage: `url(${image})`,
@@ -90,6 +117,8 @@ export default function CinematicLogoAnimation(props: Props) {
                 ...style,
             }}
         >
+            <style>{keyframes}</style>
+
             {/* Base logo */}
             <img
                 src={image}
@@ -112,24 +141,19 @@ export default function CinematicLogoAnimation(props: Props) {
                     ...logoMask,
                 }}
             >
-                <motion.div
+                <div
                     style={{
                         position: "absolute",
                         top: 0,
                         left: 0,
-                        width: "40%",
+                        width: "45%",
                         height: "100%",
                         background: beam,
                         mixBlendMode: "overlay",
-                        filter: "blur(8px)",
+                        filter: "blur(10px)",
+                        backfaceVisibility: "hidden",
                         willChange: "transform",
-                    }}
-                    animate={{ x: ["-40%", "280%"] }}
-                    transition={{
-                        duration: speed,
-                        ease: [0.4, 0, 0.2, 1],
-                        repeat: Infinity,
-                        repeatDelay: delay,
+                        animation: `${id} ${totalDuration}s cubic-bezier(0.25, 0.1, 0.25, 1) infinite`,
                     }}
                 />
             </div>
