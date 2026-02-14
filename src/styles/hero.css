@@ -1,0 +1,345 @@
+/* ─── Hero Section Base Styles ───────────────────────────────────── */
+
+:root {
+  /* SpendRule brand tokens — update these to match your Figma design system */
+  --sr-bg-primary: #0B0F1A;
+  --sr-bg-secondary: #111827;
+  --sr-text-primary: #FFFFFF;
+  --sr-text-secondary: #9CA3AF;
+  --sr-accent: #6366F1;
+  --sr-accent-light: #818CF8;
+  --sr-accent-glow: rgba(99, 102, 241, 0.25);
+  --sr-cta-gradient: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+  --sr-border-subtle: rgba(255, 255, 255, 0.06);
+  --sr-radius-lg: 16px;
+  --sr-radius-md: 12px;
+  --sr-radius-sm: 8px;
+
+  /* Typography scale */
+  --sr-font: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --sr-headline-size: clamp(2.25rem, 5vw, 4rem);
+  --sr-subheadline-size: clamp(1rem, 2vw, 1.25rem);
+  --sr-body-size: 1rem;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--sr-font);
+  background: var(--sr-bg-primary);
+  color: var(--sr-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* ─── Hero Container ─────────────────────────────────────────────── */
+
+.hero {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 24px 60px;
+  overflow: hidden;
+}
+
+.hero__inner {
+  position: relative;
+  width: 100%;
+  max-width: 1200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 40px;
+  z-index: 2;
+}
+
+/* ─── Background gradient ────────────────────────────────────────── */
+
+.hero__bg-gradient {
+  position: absolute;
+  top: -20%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 800px;
+  height: 800px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    var(--sr-accent-glow) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ─── Navigation Bar ─────────────────────────────────────────────── */
+
+.hero__nav {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 40px;
+  z-index: 10;
+}
+
+.hero__logo {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--sr-text-primary);
+}
+
+.hero__logo span {
+  color: var(--sr-accent);
+}
+
+.hero__nav-links {
+  display: flex;
+  gap: 32px;
+  list-style: none;
+}
+
+.hero__nav-links a {
+  color: var(--sr-text-secondary);
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.hero__nav-links a:hover {
+  color: var(--sr-text-primary);
+}
+
+/* ─── Text Content ───────────────────────────────────────────────── */
+
+.hero__text-block {
+  text-align: center;
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.hero__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: 100px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--sr-accent-light);
+}
+
+.hero__badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--sr-accent);
+}
+
+.hero__headline {
+  font-size: var(--sr-headline-size);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--sr-text-primary);
+}
+
+.hero__headline-accent {
+  background: var(--sr-cta-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero__subheadline {
+  font-size: var(--sr-subheadline-size);
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--sr-text-secondary);
+  max-width: 560px;
+}
+
+/* ─── CTA Buttons ────────────────────────────────────────────────── */
+
+.hero__cta-group {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.hero__cta-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 28px;
+  background: var(--sr-cta-gradient);
+  color: #fff;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--sr-radius-sm);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero__cta-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px var(--sr-accent-glow);
+}
+
+.hero__cta-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 28px;
+  background: transparent;
+  color: var(--sr-text-primary);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  border: 1px solid var(--sr-border-subtle);
+  border-radius: var(--sr-radius-sm);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.hero__cta-secondary:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* ─── Feature Cards / Grid ───────────────────────────────────────── */
+
+.hero__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  width: 100%;
+  max-width: 960px;
+}
+
+.hero__card {
+  background: var(--sr-bg-secondary);
+  border: 1px solid var(--sr-border-subtle);
+  border-radius: var(--sr-radius-lg);
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: border-color 0.3s ease;
+}
+
+.hero__card:hover {
+  border-color: rgba(99, 102, 241, 0.2);
+}
+
+.hero__card-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--sr-radius-md);
+  background: rgba(99, 102, 241, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--sr-accent-light);
+  font-size: 1.25rem;
+}
+
+.hero__card-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--sr-text-primary);
+}
+
+.hero__card-desc {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--sr-text-secondary);
+}
+
+/* ─── Illustration / Visual Asset ────────────────────────────────── */
+
+.hero__illustration {
+  position: relative;
+  width: 100%;
+  max-width: 800px;
+  aspect-ratio: 16 / 9;
+  background: var(--sr-bg-secondary);
+  border: 1px solid var(--sr-border-subtle);
+  border-radius: var(--sr-radius-lg);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero__illustration-inner {
+  font-size: 0.875rem;
+  color: var(--sr-text-secondary);
+  text-align: center;
+  padding: 20px;
+}
+
+/* ─── Responsive ─────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .hero {
+    padding: 100px 20px 40px;
+  }
+
+  .hero__grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .hero__nav {
+    padding: 16px 20px;
+  }
+
+  .hero__nav-links {
+    display: none;
+  }
+
+  .hero__cta-group {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .hero__cta-primary,
+  .hero__cta-secondary {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero__inner {
+    gap: 28px;
+  }
+
+  .hero__text-block {
+    gap: 16px;
+  }
+}
