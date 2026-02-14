@@ -53,48 +53,53 @@ interface FAQAccordionProps {
 
 // ─── Default FAQ data ────────────────────────────────────────────────────────
 
-// ─── Font options for Framer property dropdowns ─────────────────────────────
+// ─── Text formatter ─────────────────────────────────────────────────────────
+// Converts plain text with pasted URLs and markdown-style formatting into HTML.
+// Supported syntax:
+//   - URLs (https://... or http://...) → clickable links
+//   - **bold** → <b>bold</b>
+//   - *italic* → <em>italic</em>
+//   - ~~strikethrough~~ → <s>strikethrough</s>
+//   - __underline__ → <u>underline</u>
+//   - Newlines → <br/>
 
-const fontOptions = [
-    "Inter, sans-serif",
-    "Arial, sans-serif",
-    "Helvetica, sans-serif",
-    "Georgia, serif",
-    "Times New Roman, serif",
-    "Courier New, monospace",
-    "Verdana, sans-serif",
-    "Trebuchet MS, sans-serif",
-    "Palatino, serif",
-    "Garamond, serif",
-    "system-ui, sans-serif",
-]
+function formatText(text: string): string {
+    let html = text
+        // Escape minimal HTML so pasted content is safe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
 
-const fontOptionTitles = [
-    "Inter",
-    "Arial",
-    "Helvetica",
-    "Georgia",
-    "Times New Roman",
-    "Courier New",
-    "Verdana",
-    "Trebuchet MS",
-    "Palatino",
-    "Garamond",
-    "System UI",
-]
+    // Auto-link URLs (must come before other replacements)
+    html = html.replace(
+        /(https?:\/\/[^\s<]+)/g,
+        '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
+    )
+
+    // Markdown-style formatting (order matters: bold before italic)
+    html = html.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")
+    html = html.replace(/\*(.+?)\*/g, "<em>$1</em>")
+    html = html.replace(/~~(.+?)~~/g, "<s>$1</s>")
+    html = html.replace(/__(.+?)__/g, "<u>$1</u>")
+
+    // Newlines → <br/>
+    html = html.replace(/\n/g, "<br/>")
+
+    return html
+}
 
 const defaultItems: FAQItem[] = [
     {
         question: "What is this component?",
-        answer: "This is a <b>fully customizable</b> FAQ Accordion built for Framer. You can edit all styles, colors, typography, and content directly from the property panel.",
+        answer: "This is a **fully customizable** FAQ Accordion built for Framer. You can edit all styles, colors, typography, and content directly from the property panel.",
     },
     {
         question: "How do I customize the content?",
-        answer: "Click on the component, then use the <em>property controls</em> on the right panel in Framer to add, edit, or remove FAQ items. Learn more at <a href='https://framer.com' target='_blank'>Framer</a>.",
+        answer: "Click on the component, then use the *property controls* on the right panel in Framer to add, edit, or remove FAQ items.\n\nLearn more at https://framer.com",
     },
     {
-        question: "Can I use rich text in answers?",
-        answer: "Yes! Answers support <b>bold</b>, <em>italic</em>, <u>underline</u>, <a href='#'>links</a>, and <br/><br/>line breaks. Use standard HTML tags in the answer field.",
+        question: "What text formatting is supported?",
+        answer: "Just type naturally! Paste any URL and it becomes a clickable link. Use **double asterisks** for bold, *single asterisks* for italic, __double underscores__ for underline, and ~~tildes~~ for strikethrough.",
     },
 ]
 
@@ -104,7 +109,7 @@ const defaultItems: FAQItem[] = [
 
 function AnimatedPanel({
     isOpen,
-    html,
+    text,
     answerFontFamily,
     answerFontSize,
     answerFontWeight,
@@ -113,7 +118,7 @@ function AnimatedPanel({
     padding,
 }: {
     isOpen: boolean
-    html: string
+    text: string
     answerFontFamily: string
     answerFontSize: number
     answerFontWeight: number
@@ -123,6 +128,7 @@ function AnimatedPanel({
 }) {
     const contentRef = useRef<HTMLDivElement>(null)
     const [measuredHeight, setMeasuredHeight] = useState(0)
+    const html = formatText(text)
 
     useEffect(() => {
         if (contentRef.current) {
@@ -225,11 +231,11 @@ export function FAQAccordion(props: FAQAccordionProps) {
         borderRadius = 12,
         borderWidth = 1,
         borderColor = "#e2e2e2",
-        questionFontFamily = "Inter, sans-serif",
+        questionFontFamily = "Inter",
         questionFontSize = 16,
         questionFontWeight = 600,
         questionColor = "#1a1a1a",
-        answerFontFamily = "Inter, sans-serif",
+        answerFontFamily = "Inter",
         answerFontSize = 15,
         answerFontWeight = 400,
         answerColor = "#555555",
@@ -370,10 +376,10 @@ export function FAQAccordion(props: FAQAccordionProps) {
                             )}
                         </div>
 
-                        {/* Animated answer panel (renders HTML rich text) */}
+                        {/* Animated answer panel (auto-formats plain text) */}
                         <AnimatedPanel
                             isOpen={isOpen}
-                            html={item.answer}
+                            text={item.answer}
                             answerFontFamily={answerFontFamily}
                             answerFontSize={answerFontSize}
                             answerFontWeight={answerFontWeight}
@@ -397,11 +403,11 @@ FAQAccordion.defaultProps = {
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#e2e2e2",
-    questionFontFamily: "Inter, sans-serif",
+    questionFontFamily: "Inter",
     questionFontSize: 16,
     questionFontWeight: 600,
     questionColor: "#1a1a1a",
-    answerFontFamily: "Inter, sans-serif",
+    answerFontFamily: "Inter",
     answerFontSize: 15,
     answerFontWeight: 400,
     answerColor: "#555555",
@@ -440,7 +446,7 @@ addPropertyControls(FAQAccordion, {
                     defaultValue: "Your answer here.",
                     displayTextArea: true,
                     description:
-                        "Supports HTML: <b>, <em>, <u>, <a href='...'>, <br/>, <ul>, <ol>, <li>, <p>",
+                        "Paste URLs to auto-link. Use **bold**, *italic*, __underline__, ~~strike~~.",
                 },
             },
         },
@@ -490,11 +496,10 @@ addPropertyControls(FAQAccordion, {
     // ── Question Typography ──────────────────────────────────────────────
 
     questionFontFamily: {
-        type: ControlType.Enum,
+        type: ControlType.String,
         title: "Q Font",
-        options: fontOptions,
-        optionTitles: fontOptionTitles,
-        defaultValue: "Inter, sans-serif",
+        defaultValue: "Inter",
+        description: "Type any font name available in your Framer project.",
     },
     questionFontSize: {
         type: ControlType.Number,
@@ -521,11 +526,10 @@ addPropertyControls(FAQAccordion, {
     // ── Answer Typography ────────────────────────────────────────────────
 
     answerFontFamily: {
-        type: ControlType.Enum,
+        type: ControlType.String,
         title: "A Font",
-        options: fontOptions,
-        optionTitles: fontOptionTitles,
-        defaultValue: "Inter, sans-serif",
+        defaultValue: "Inter",
+        description: "Type any font name available in your Framer project.",
     },
     answerFontSize: {
         type: ControlType.Number,
