@@ -41,8 +41,10 @@ function Word({
 
 // ── Main component ───────────────────────────────────────────────────
 /**
- * @framerSupportedLayoutWidth any
- * @framerSupportedLayoutHeight any
+ * @framerSupportedLayoutWidth any-prefer-fixed
+ * @framerSupportedLayoutHeight any-prefer-fixed
+ * @framerIntrinsicWidth 800
+ * @framerIntrinsicHeight 400
  */
 export default function ScrollTextOpacity(props: {
     text: string
@@ -59,7 +61,6 @@ export default function ScrollTextOpacity(props: {
     perWord: boolean
     enableBlur: boolean
     staggerAmount: number
-    minHeight: string
 }) {
     const {
         text = "We exist to close the access gap in healthcare",
@@ -76,7 +77,6 @@ export default function ScrollTextOpacity(props: {
         perWord = true,
         enableBlur = true,
         staggerAmount = 0.04,
-        minHeight = "100vh",
     } = props
 
     const containerRef = useRef<HTMLDivElement>(null)
@@ -109,8 +109,8 @@ export default function ScrollTextOpacity(props: {
         <div
             ref={containerRef}
             style={{
-                minHeight,
                 width: "100%",
+                height: "100%",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "flex-start",
@@ -279,10 +279,5 @@ addPropertyControls(ScrollTextOpacity, {
         hidden: (props) => !props.perWord,
         description:
             "Scroll offset between each word's animation start",
-    },
-    minHeight: {
-        type: ControlType.String,
-        title: "Min Height",
-        defaultValue: "100vh",
     },
 })
