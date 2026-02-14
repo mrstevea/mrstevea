@@ -5,7 +5,6 @@ import type { CSSProperties } from "react"
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface Props {
-    richText: React.ReactNode
     textColor: string
     fontSize: number
     highlightColor: string
@@ -43,8 +42,14 @@ function getBlockElements(root: HTMLElement): HTMLElement[] {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
+const AGREEMENT_HTML =
+    '<h2 style="font-weight:700;margin-bottom:16px;text-align:center">MANAGEMENT SERVICES AGREEMENT</h2>' +
+    '<p style="line-height:1.8;margin-bottom:14px">This Management Services Agreement (the &quot;Agreement&quot;) is made and entered into as of January 1, 2022, by and between Nexus Valley Health, a Texas not-for-profit corporation (&quot;Nexus&quot;), and ARAMARK MANAGEMENT SERVICES LIMITED PARTNERSHIP, a Delaware limited partnership (&quot;Aramark&quot;). Nexus and Aramark will be referred to jointly as the &quot;Parties&quot; and individually as a &quot;Party.&quot;</p>' +
+    '<p style="line-height:1.8;margin-bottom:14px;font-weight:600">WITNESSETH THAT:</p>' +
+    '<p style="line-height:1.8;margin-bottom:14px;font-weight:700">Partnership</p>' +
+    '<p style="line-height:1.8;margin-bottom:14px"><strong>1. Generally.</strong> The Parties are intending to enter into a significant and meaningful contractual relationship. The unique degree of investment and commitment from both organizations is referred to in this Agreement as the &quot;Partnership.&quot; The term carries no legal implication to infer any sort of joint venture or other legal structure beyond the business relationship outlined for the provision of Services. Instead, this term is referring to the list of commitments and expectations listed under Section 1(c). This additional distinction represents the intention for Aramark to utilize Nexus as a showcase account, which means it will be a primary site for touring and will serve to promote a full-service program within the healthcare industry.</p>'
+
 function CustomHighlightText({
-    richText,
     textColor = "#1a1a2e",
     fontSize = 18,
     highlightColor = "#FEF9C3",
@@ -140,6 +145,7 @@ function CustomHighlightText({
         color: textColor,
         fontSize: `${fontSize}px`,
         position: "relative",
+        overflow: "hidden",
         wordBreak: "break-word",
         overflowWrap: "break-word",
         ...style,
@@ -189,9 +195,10 @@ function CustomHighlightText({
                     </div>
                 )}
 
-                <div style={{ position: "relative", zIndex: 1 }}>
-                    {richText}
-                </div>
+                <div
+                    style={{ position: "relative", zIndex: 1 }}
+                    dangerouslySetInnerHTML={{ __html: AGREEMENT_HTML }}
+                />
             </div>
         </>
     )
@@ -200,16 +207,6 @@ function CustomHighlightText({
 // ─── Framer Property Controls ────────────────────────────────────────────────
 
 addPropertyControls(CustomHighlightText, {
-    richText: {
-        type: ControlType.RichText,
-        title: "Text",
-        defaultValue:
-            '<h2 style="font-weight:700;margin-bottom:16px;text-align:center">MANAGEMENT SERVICES AGREEMENT</h2>' +
-            '<p style="line-height:1.8;margin-bottom:14px">This Management Services Agreement (the &quot;Agreement&quot;) is made and entered into as of January 1, 2022, by and between Nexus Valley Health, a Texas not-for-profit corporation (&quot;Nexus&quot;), and ARAMARK MANAGEMENT SERVICES LIMITED PARTNERSHIP, a Delaware limited partnership (&quot;Aramark&quot;). Nexus and Aramark will be referred to jointly as the &quot;Parties&quot; and individually as a &quot;Party.&quot;</p>' +
-            '<p style="line-height:1.8;margin-bottom:14px;font-weight:600">WITNESSETH THAT:</p>' +
-            '<p style="line-height:1.8;margin-bottom:14px;font-weight:700">Partnership</p>' +
-            '<p style="line-height:1.8;margin-bottom:14px"><strong>1. Generally.</strong> The Parties are intending to enter into a significant and meaningful contractual relationship. The unique degree of investment and commitment from both organizations is referred to in this Agreement as the &quot;Partnership.&quot; The term carries no legal implication to infer any sort of joint venture or other legal structure beyond the business relationship outlined for the provision of Services. Instead, this term is referring to the list of commitments and expectations listed under Section 1(c). This additional distinction represents the intention for Aramark to utilize Nexus as a showcase account, which means it will be a primary site for touring and will serve to promote a full-service program within the healthcare industry.</p>',
-    },
     textColor: {
         type: ControlType.Color,
         title: "Text Color",
