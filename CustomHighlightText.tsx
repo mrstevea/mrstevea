@@ -35,7 +35,17 @@ interface TextSegment {
     length: number
 }
 
+interface TextBlock {
+    segments: TextSegment[]
+    fullText: string
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+const BLOCK_TAGS = new Set([
+    "P", "H1", "H2", "H3", "H4", "H5", "H6",
+    "LI", "BLOCKQUOTE", "DT", "DD", "FIGCAPTION",
+])
 
 function mergeRects(rects: HighlightRect[]): HighlightRect[] {
     if (rects.length <= 1) return rects
@@ -66,21 +76,58 @@ function mergeRects(rects: HighlightRect[]): HighlightRect[] {
     return merged
 }
 
-function collectTextNodes(root: HTMLElement): TextSegment[] {
-    const segments: TextSegment[] = []
-    let offset = 0
+/** Find the closest block-level ancestor for a text node. */
+function getClosestBlock(node: Node, root: HTMLElement): HTMLElement {
+    let current = node.parentElement
+    while (current && current !== root) {
+        if (BLOCK_TAGS.has(current.tagName)) return current
+        current = current.parentElement
+    }
+    return root
+}
+
+/**
+ * Group text nodes by their parent block element (p, h1-h6, li, etc.)
+ * so highlights never cross paragraph boundaries.
+ */
+function collectTextBlocks(root: HTMLElement): TextBlock[] {
+    const blockMap = new Map<HTMLElement, TextSegment[]>()
+    const blockOrder: HTMLElement[] = []
 
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
     let node: Text | null
     while ((node = walker.nextNode() as Text | null)) {
         const len = node.textContent?.length ?? 0
-        if (len > 0) {
-            segments.push({ node, start: offset, length: len })
-            offset += len
+        if (len === 0) continue
+
+        // Skip nodes inside the overlay layer
+        if (node.parentElement?.closest("[aria-hidden]")) continue
+
+        const block = getClosestBlock(node, root)
+        if (!blockMap.has(block)) {
+            blockMap.set(block, [])
+            blockOrder.push(block)
+        }
+        blockMap.get(block)!.push({ node, start: 0, length: len })
+    }
+
+    const blocks: TextBlock[] = []
+    for (const block of blockOrder) {
+        const segments = blockMap.get(block)!
+        let offset = 0
+        for (const seg of segments) {
+            seg.start = offset
+            offset += seg.length
+        }
+        const fullText = segments
+            .map((s) => s.node.textContent ?? "")
+            .join("")
+        if (fullText.trim().length > 0) {
+            blocks.push({ segments, fullText })
         }
     }
 
-    return segments
+    return blocks
 }
 
 function findNodeAtOffset(
@@ -163,19 +210,36 @@ function CustomHighlightText({
         const runCycle = () => {
             if (cancelled) return
 
-            const segments = collectTextNodes(container)
-            const fullText = segments
-                .map((s) => s.node.textContent ?? "")
-                .join("")
+            // Group text nodes by block element so highlights
+            // never cross paragraph boundaries
+            const blocks = collectTextBlocks(container)
+            if (blocks.length === 0) {
+                cycleTimer = setTimeout(runCycle, highlightInterval)
+                return
+            }
 
-            const wordRange = pickRandomWordRange(fullText, minWords, maxWords)
+            // Pick a random block, then random words within it
+            const block =
+                blocks[Math.floor(Math.random() * blocks.length)]
+
+            const wordRange = pickRandomWordRange(
+                block.fullText,
+                minWords,
+                maxWords
+            )
             if (!wordRange) {
                 cycleTimer = setTimeout(runCycle, highlightInterval)
                 return
             }
 
-            const startPos = findNodeAtOffset(segments, wordRange.start)
-            const endPos = findNodeAtOffset(segments, wordRange.end)
+            const startPos = findNodeAtOffset(
+                block.segments,
+                wordRange.start
+            )
+            const endPos = findNodeAtOffset(
+                block.segments,
+                wordRange.end
+            )
             if (!startPos || !endPos) {
                 cycleTimer = setTimeout(runCycle, highlightInterval)
                 return
