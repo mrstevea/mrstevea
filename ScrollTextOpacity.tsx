@@ -39,97 +39,12 @@ function Word({
     )
 }
 
-// ── Text content block (shared between modes) ────────────────────────
-function TextContent({
-    words,
-    perWord,
-    scrollYProgress,
-    scrollEnd,
-    staggerAmount,
-    enableBlur,
-    wholeOpacity,
-    wholeFilter,
-    fontFamily,
-    fontWeight,
-    clampedFontSize,
-    lineHeight,
-    letterSpacing,
-    textColor,
-    text,
-}: {
-    words: string[]
-    perWord: boolean
-    scrollYProgress: MotionValue<number>
-    scrollEnd: number
-    staggerAmount: number
-    enableBlur: boolean
-    wholeOpacity: MotionValue<number>
-    wholeFilter: MotionValue<string>
-    fontFamily: string
-    fontWeight: number
-    clampedFontSize: string
-    lineHeight: number
-    letterSpacing: number
-    textColor: string
-    text: string
-}) {
-    const totalWords = words.length
-
-    const sharedStyle = {
-        fontFamily,
-        fontWeight,
-        fontSize: clampedFontSize,
-        lineHeight,
-        letterSpacing: `${letterSpacing}em`,
-        color: textColor,
-        margin: 0,
-        maxWidth: "100%",
-    }
-
-    if (perWord) {
-        return (
-            <p style={sharedStyle}>
-                {words.map((word, i) => {
-                    const wordStart = i * staggerAmount
-                    const wordEnd = wordStart + scrollEnd
-
-                    return (
-                        <span key={i}>
-                            <Word
-                                word={word}
-                                scrollYProgress={scrollYProgress}
-                                start={wordStart}
-                                end={wordEnd}
-                                enableBlur={enableBlur}
-                            />
-                            {i < totalWords - 1 && "\u00A0"}
-                        </span>
-                    )
-                })}
-            </p>
-        )
-    }
-
-    return (
-        <motion.p
-            style={{
-                ...sharedStyle,
-                opacity: wholeOpacity,
-                filter: enableBlur ? wholeFilter : "none",
-                willChange: "opacity, filter",
-            }}
-        >
-            {text}
-        </motion.p>
-    )
-}
-
 // ── Main component ───────────────────────────────────────────────────
 /**
  * @framerSupportedLayoutWidth any-prefer-fixed
  * @framerSupportedLayoutHeight any-prefer-fixed
- * @framerIntrinsicWidth 1200
- * @framerIntrinsicHeight 2000
+ * @framerIntrinsicWidth 800
+ * @framerIntrinsicHeight 400
  */
 export default function ScrollTextOpacity(props: {
     text: string
@@ -146,8 +61,6 @@ export default function ScrollTextOpacity(props: {
     perWord: boolean
     enableBlur: boolean
     staggerAmount: number
-    scrollHeight: number
-    stickyAlign: string
 }) {
     const {
         text = "We exist to close the access gap in healthcare",
@@ -164,21 +77,16 @@ export default function ScrollTextOpacity(props: {
         perWord = true,
         enableBlur = true,
         staggerAmount = 0.04,
-        scrollHeight = 300,
-        stickyAlign = "center",
     } = props
 
-    // Ref goes on the OUTER tall container — this is what we track
-    const outerRef = useRef<HTMLDivElement>(null)
+    const containerRef = useRef<HTMLDivElement>(null)
 
     const { scrollYProgress } = useScroll({
-        target: outerRef,
-        // "start start" = animation begins when outer top hits viewport top
-        // "end end"     = animation ends when outer bottom hits viewport bottom
-        offset: ["start start", "end end"],
+        target: containerRef,
+        offset: ["start end", "end start"],
     })
 
-    // ── Whole-text transforms ────────────────────────────────────────
+    // ── Simple (whole-text) mode ──────────────────────────────────────
     const wholeOpacity = useTransform(
         scrollYProgress,
         [0, scrollEnd],
@@ -191,59 +99,76 @@ export default function ScrollTextOpacity(props: {
     )
     const wholeFilter = useTransform(wholeBlur, (v) => `blur(${v}px)`)
 
+    // ── Per-word stagger ranges ──────────────────────────────────────
     const words = text.split(/\s+/)
+    const totalWords = words.length
+
     const clampedFontSize = `clamp(${mobileFontSize}px, 5vw, ${fontSize}px)`
 
-    // Vertical alignment for the sticky panel
-    const alignMap: Record<string, string> = {
-        top: "flex-start",
-        center: "center",
-        bottom: "flex-end",
-    }
-
     return (
-        // OUTER: tall scroll runway — creates the scroll distance
         <div
-            ref={outerRef}
+            ref={containerRef}
             style={{
-                position: "relative",
                 width: "100%",
-                height: `${scrollHeight}vh`,
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "flex-start",
                 backgroundColor,
+                padding: `0 ${paddingX}%`,
+                boxSizing: "border-box",
             }}
         >
-            {/* INNER: sticky panel — stays pinned while outer scrolls */}
-            <div
-                style={{
-                    position: "sticky",
-                    top: 0,
-                    width: "100%",
-                    height: "100vh",
-                    display: "flex",
-                    alignItems: alignMap[stickyAlign] || "center",
-                    justifyContent: "flex-start",
-                    padding: `0 ${paddingX}%`,
-                    boxSizing: "border-box",
-                }}
-            >
-                <TextContent
-                    words={words}
-                    perWord={perWord}
-                    scrollYProgress={scrollYProgress}
-                    scrollEnd={scrollEnd}
-                    staggerAmount={staggerAmount}
-                    enableBlur={enableBlur}
-                    wholeOpacity={wholeOpacity}
-                    wholeFilter={wholeFilter}
-                    fontFamily={fontFamily}
-                    fontWeight={fontWeight}
-                    clampedFontSize={clampedFontSize}
-                    lineHeight={lineHeight}
-                    letterSpacing={letterSpacing}
-                    textColor={textColor}
-                    text={text}
-                />
-            </div>
+            {perWord ? (
+                <p
+                    style={{
+                        fontFamily,
+                        fontWeight,
+                        fontSize: clampedFontSize,
+                        lineHeight,
+                        letterSpacing: `${letterSpacing}em`,
+                        color: textColor,
+                        margin: 0,
+                        maxWidth: "100%",
+                    }}
+                >
+                    {words.map((word, i) => {
+                        const wordStart = i * staggerAmount
+                        const wordEnd = wordStart + scrollEnd
+
+                        return (
+                            <span key={i}>
+                                <Word
+                                    word={word}
+                                    scrollYProgress={scrollYProgress}
+                                    start={wordStart}
+                                    end={wordEnd}
+                                    enableBlur={enableBlur}
+                                />
+                                {i < totalWords - 1 && "\u00A0"}
+                            </span>
+                        )
+                    })}
+                </p>
+            ) : (
+                <motion.p
+                    style={{
+                        fontFamily,
+                        fontWeight,
+                        fontSize: clampedFontSize,
+                        lineHeight,
+                        letterSpacing: `${letterSpacing}em`,
+                        color: textColor,
+                        margin: 0,
+                        maxWidth: "100%",
+                        opacity: wholeOpacity,
+                        filter: enableBlur ? wholeFilter : "none",
+                        willChange: "opacity, filter",
+                    }}
+                >
+                    {text}
+                </motion.p>
+            )}
         </div>
     )
 }
@@ -321,24 +246,6 @@ addPropertyControls(ScrollTextOpacity, {
         min: 0,
         max: 25,
         unit: "%",
-    },
-    scrollHeight: {
-        type: ControlType.Number,
-        title: "Scroll Height",
-        defaultValue: 300,
-        min: 150,
-        max: 600,
-        step: 10,
-        unit: "vh",
-        description:
-            "Total height of the scroll runway. Higher = slower/longer animation. 300vh is a good default.",
-    },
-    stickyAlign: {
-        type: ControlType.Enum,
-        title: "Vertical Align",
-        defaultValue: "center",
-        options: ["top", "center", "bottom"],
-        optionTitles: ["Top", "Center", "Bottom"],
     },
     scrollEnd: {
         type: ControlType.Number,
