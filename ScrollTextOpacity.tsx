@@ -1,4 +1,4 @@
-import { useRef } from "react"
+import { useRef, useLayoutEffect } from "react"
 import {
     motion,
     useScroll,
@@ -80,10 +80,29 @@ export default function ScrollTextOpacity(props: {
     } = props
 
     const containerRef = useRef<HTMLDivElement>(null)
+    const scrollTargetRef = useRef<HTMLElement | null>(null)
+
+    // Walk up the DOM to find the tall scroll-runway ancestor.
+    // In Framer this is the tall Section (e.g. 300vh) that wraps the
+    // sticky frame. useLayoutEffect runs before framer-motion's
+    // useEffect, so the ref is set in time for useScroll.
+    useLayoutEffect(() => {
+        if (!containerRef.current) return
+        let el: HTMLElement | null = containerRef.current.parentElement
+        while (el) {
+            if (el.offsetHeight > window.innerHeight * 1.5) {
+                scrollTargetRef.current = el
+                return
+            }
+            el = el.parentElement
+        }
+        // Fallback: no tall ancestor found, track self
+        scrollTargetRef.current = containerRef.current
+    }, [])
 
     const { scrollYProgress } = useScroll({
-        target: containerRef,
-        offset: ["start end", "end start"],
+        target: scrollTargetRef,
+        offset: ["start start", "end end"],
     })
 
     // ── Simple (whole-text) mode ──────────────────────────────────────
