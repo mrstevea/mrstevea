@@ -10,7 +10,6 @@ interface Props {
     highlightColor: string
     maxWidth: number
     borderRadius: number
-    highlightPadding: number
     animationDuration: number
     highlightInterval: number
     highlightDuration: number
@@ -49,21 +48,24 @@ const AGREEMENT_HTML =
     '<p style="line-height:1.8;margin-bottom:14px;font-weight:700">Partnership</p>' +
     '<p style="line-height:1.8;margin-bottom:14px"><strong>1. Generally.</strong> The Parties are intending to enter into a significant and meaningful contractual relationship. The unique degree of investment and commitment from both organizations is referred to in this Agreement as the &quot;Partnership.&quot; The term carries no legal implication to infer any sort of joint venture or other legal structure beyond the business relationship outlined for the provision of Services. Instead, this term is referring to the list of commitments and expectations listed under Section 1(c). This additional distinction represents the intention for Aramark to utilize Nexus as a showcase account, which means it will be a primary site for touring and will serve to promote a full-service program within the healthcare industry.</p>'
 
+const FADE_MS = 300
+
 function CustomHighlightText({
     textColor = "#1a1a2e",
     fontSize = 18,
     highlightColor = "#FEF9C3",
     maxWidth = 640,
-    borderRadius = 12,
-    highlightPadding = 16,
-    animationDuration = 400,
-    highlightInterval = 3000,
-    highlightDuration = 2000,
+    borderRadius = 4,
+    animationDuration = 600,
+    highlightInterval = 2000,
+    highlightDuration = 1200,
     style,
 }: Props) {
     const containerRef = useRef<HTMLDivElement>(null)
+    const blockIndexRef = useRef(0)
 
     const [rect, setRect] = useState<HighlightRect | null>(null)
+    const [swept, setSwept] = useState(false)
     const [fading, setFading] = useState(false)
 
     // ── Auto-highlight loop ──────────────────────────────────────────────
@@ -73,8 +75,9 @@ function CustomHighlightText({
         if (!container) return
 
         let cycleTimer: ReturnType<typeof setTimeout>
+        let holdTimer: ReturnType<typeof setTimeout>
         let fadeTimer: ReturnType<typeof setTimeout>
-        let clearTimer: ReturnType<typeof setTimeout>
+        let rafId: number
         let cancelled = false
 
         const runCycle = () => {
@@ -82,58 +85,74 @@ function CustomHighlightText({
 
             const blocks = getBlockElements(container)
             if (blocks.length === 0) {
-                cycleTimer = setTimeout(runCycle, highlightInterval)
+                cycleTimer = setTimeout(runCycle, 1000)
                 return
             }
 
-            const block =
-                blocks[Math.floor(Math.random() * blocks.length)]
+            // Sequential order like reading
+            const idx = blockIndexRef.current % blocks.length
+            blockIndexRef.current = idx + 1
+            const block = blocks[idx]
 
             const containerBox = container.getBoundingClientRect()
             const blockBox = block.getBoundingClientRect()
 
+            // Tight to the text — no extra padding
             const newRect: HighlightRect = {
-                x: blockBox.left - containerBox.left - highlightPadding,
-                y: blockBox.top - containerBox.top - highlightPadding,
-                width: blockBox.width + highlightPadding * 2,
-                height: blockBox.height + highlightPadding * 2,
+                x: blockBox.left - containerBox.left,
+                y: blockBox.top - containerBox.top,
+                width: blockBox.width,
+                height: blockBox.height,
             }
 
+            // Phase 1 — mount at scaleX(0)
+            setSwept(false)
             setFading(false)
             setRect(newRect)
 
-            fadeTimer = setTimeout(() => {
+            // Phase 2 — sweep left-to-right (double rAF for paint)
+            rafId = requestAnimationFrame(() => {
+                if (cancelled) return
+                rafId = requestAnimationFrame(() => {
+                    if (cancelled) return
+                    setSwept(true)
+                })
+            })
+
+            // Phase 3 — after sweep + hold, fade out
+            holdTimer = setTimeout(() => {
                 if (cancelled) return
                 setFading(true)
 
-                clearTimer = setTimeout(() => {
+                fadeTimer = setTimeout(() => {
                     if (cancelled) return
                     setRect(null)
+                    setSwept(false)
                     setFading(false)
-                }, animationDuration)
-            }, highlightDuration)
+                }, FADE_MS)
+            }, animationDuration + highlightDuration)
 
-            cycleTimer = setTimeout(runCycle, highlightInterval)
+            // Schedule next — add jitter so timing feels human
+            const total = animationDuration + highlightDuration + FADE_MS
+            const jitter = (Math.random() - 0.5) * 400
+            cycleTimer = setTimeout(
+                runCycle,
+                total + highlightInterval + jitter
+            )
         }
 
-        cycleTimer = setTimeout(runCycle, 500)
+        cycleTimer = setTimeout(runCycle, 600)
 
         return () => {
             cancelled = true
             clearTimeout(cycleTimer)
+            clearTimeout(holdTimer)
             clearTimeout(fadeTimer)
-            clearTimeout(clearTimer)
+            cancelAnimationFrame(rafId)
         }
-    }, [
-        highlightInterval,
-        highlightDuration,
-        highlightPadding,
-        animationDuration,
-    ])
+    }, [animationDuration, highlightDuration, highlightInterval])
 
     // ── Derived values ───────────────────────────────────────────────────
-
-    const showOverlay = rect !== null || fading
 
     const scopeId = useRef(
         `cht-${Math.random().toString(36).slice(2, 8)}`
@@ -163,7 +182,7 @@ function CustomHighlightText({
                 className={scopeId}
                 style={containerStyle}
             >
-                {showOverlay && (
+                {rect && (
                     <div
                         style={{
                             position: "absolute",
@@ -173,25 +192,26 @@ function CustomHighlightText({
                         }}
                         aria-hidden="true"
                     >
-                        {rect && (
-                            <div
-                                style={{
-                                    position: "absolute",
-                                    left: rect.x,
-                                    top: rect.y,
-                                    width: rect.width,
-                                    height: rect.height,
-                                    background: highlightColor,
-                                    borderRadius: `${borderRadius}px`,
-                                    opacity: rect && !fading ? 1 : 0,
-                                    transform:
-                                        rect && !fading
-                                            ? "scale(1)"
-                                            : "scale(0.98)",
-                                    transition: `opacity ${animationDuration}ms ease-out, transform ${animationDuration}ms ease-out`,
-                                }}
-                            />
-                        )}
+                        <div
+                            style={{
+                                position: "absolute",
+                                left: rect.x,
+                                top: rect.y,
+                                width: rect.width,
+                                height: rect.height,
+                                background: highlightColor,
+                                borderRadius: `${borderRadius}px`,
+                                transformOrigin: "left center",
+                                transform: swept
+                                    ? "scaleX(1)"
+                                    : "scaleX(0)",
+                                opacity: fading ? 0 : 1,
+                                transition: [
+                                    `transform ${animationDuration}ms cubic-bezier(0.25, 0.1, 0.25, 1)`,
+                                    `opacity ${FADE_MS}ms ease-out`,
+                                ].join(", "),
+                            }}
+                        />
                     </div>
                 )}
 
@@ -239,46 +259,38 @@ addPropertyControls(CustomHighlightText, {
     borderRadius: {
         type: ControlType.Number,
         title: "Corner Radius",
-        defaultValue: 12,
+        defaultValue: 4,
         min: 0,
-        max: 30,
+        max: 16,
         step: 1,
-        unit: "px",
-    },
-    highlightPadding: {
-        type: ControlType.Number,
-        title: "Highlight Padding",
-        defaultValue: 16,
-        min: 0,
-        max: 40,
-        step: 2,
         unit: "px",
     },
     animationDuration: {
         type: ControlType.Number,
-        title: "Anim Duration",
-        defaultValue: 400,
-        min: 100,
-        max: 1000,
+        title: "Sweep Speed",
+        defaultValue: 600,
+        min: 200,
+        max: 1500,
         step: 50,
         unit: "ms",
+        description: "How fast the highlight sweeps across",
     },
     highlightInterval: {
         type: ControlType.Number,
         title: "Interval",
-        defaultValue: 3000,
+        defaultValue: 2000,
         min: 500,
         max: 10000,
         step: 100,
         unit: "ms",
-        description: "Time between each new highlight",
+        description: "Pause between highlights",
     },
     highlightDuration: {
         type: ControlType.Number,
         title: "Hold Duration",
-        defaultValue: 2000,
+        defaultValue: 1200,
         min: 200,
-        max: 8000,
+        max: 5000,
         step: 100,
         unit: "ms",
         description: "How long each highlight stays visible",
