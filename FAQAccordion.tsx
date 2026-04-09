@@ -73,7 +73,8 @@ interface FAQRowProps {
     itemBackgroundColor: string
     borderRadius: number
     iconGap: number
-    fontSize: number
+    questionFontSize: number
+    answerFontSize: number
     questionFontWeight: number
 }
 
@@ -89,7 +90,8 @@ function FAQRow({
     itemBackgroundColor,
     borderRadius,
     iconGap,
-    fontSize,
+    questionFontSize,
+    answerFontSize,
     questionFontWeight,
 }: FAQRowProps) {
     const iconColor = isOpen ? accentColor : answerColor
@@ -119,7 +121,7 @@ function FAQRow({
                 <span
                     style={{
                         ...font,
-                        fontSize,
+                        fontSize: questionFontSize,
                         fontWeight: questionFontWeight,
                         color: questionColor,
                         lineHeight: 1.4,
@@ -160,7 +162,7 @@ function FAQRow({
                         <p
                             style={{
                                 ...font,
-                                fontSize: fontSize - 1,
+                                fontSize: answerFontSize,
                                 color: answerColor,
                                 lineHeight: 1.65,
                                 margin: "12px 0 0 0",
@@ -189,12 +191,13 @@ interface FAQAccordionProps {
     borderColor?: string
     accentColor?: string
     questionFontWeight?: number
+    questionFontSize?: number
+    answerFontSize?: number
     itemBorderRadius?: number
     iconGap?: number
     gap?: number
     padding?: number
     containerBorderRadius?: number
-    fontSize?: number
     style?: React.CSSProperties
 }
 
@@ -217,12 +220,13 @@ export default function FAQAccordion({
     borderColor = "rgba(255,255,255,0.14)",
     accentColor = "#4ECDC4",
     questionFontWeight = 500,
+    questionFontSize = 16,
+    answerFontSize = 15,
     itemBorderRadius = 14,
     iconGap = 16,
     gap = 10,
     padding = 16,
     containerBorderRadius = 20,
-    fontSize = 16,
     style,
     ...rest
 }: FAQAccordionProps) {
@@ -273,7 +277,8 @@ export default function FAQAccordion({
                     itemBackgroundColor={itemBackgroundColor}
                     borderRadius={itemBorderRadius}
                     iconGap={iconGap}
-                    fontSize={fontSize}
+                    questionFontSize={questionFontSize}
+                    answerFontSize={answerFontSize}
                 />
             ))}
         </div>
@@ -326,12 +331,20 @@ addPropertyControls(FAQAccordion, {
         title: "Font",
         controls: "basic",
     },
-    fontSize: {
+    questionFontSize: {
         type: ControlType.Number,
-        title: "Font Size",
+        title: "Q. Font Size",
         defaultValue: 16,
-        min: 12,
-        max: 28,
+        min: 10,
+        max: 36,
+        unit: "px",
+    },
+    answerFontSize: {
+        type: ControlType.Number,
+        title: "A. Font Size",
+        defaultValue: 15,
+        min: 10,
+        max: 36,
         unit: "px",
     },
     questionFontWeight: {
