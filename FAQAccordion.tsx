@@ -91,6 +91,9 @@ interface FAQRowProps {
     accentColor: string
     itemBackgroundColor: string
     borderRadius: number
+    paddingX: number
+    paddingY: number
+    answerSpacing: number
     fontSize: number
     questionFontWeight: number
 }
@@ -106,6 +109,9 @@ function FAQRow({
     accentColor,
     itemBackgroundColor,
     borderRadius,
+    paddingX,
+    paddingY,
+    answerSpacing,
     fontSize,
     questionFontWeight,
 }: FAQRowProps) {
@@ -119,7 +125,7 @@ function FAQRow({
                 backgroundColor: itemBackgroundColor,
                 border: `1px solid ${borderColor}`,
                 borderRadius,
-                padding: "20px 24px",
+                padding: `${paddingY}px ${paddingX}px`,
                 cursor: "pointer",
                 userSelect: "none",
                 overflow: "hidden",
@@ -186,7 +192,7 @@ function FAQRow({
                                 fontSize: fontSize - 1,
                                 color: answerColor,
                                 lineHeight: 1.65,
-                                margin: "12px 0 0 0",
+                                margin: `${answerSpacing}px 0 0 0`,
                             }}
                         >
                             {item.answer}
@@ -213,6 +219,9 @@ interface FAQAccordionProps {
     accentColor?: string
     questionFontWeight?: number
     itemBorderRadius?: number
+    itemPaddingX?: number
+    itemPaddingY?: number
+    answerSpacing?: number
     gap?: number
     padding?: number
     containerBorderRadius?: number
@@ -240,6 +249,9 @@ export default function FAQAccordion({
     accentColor = "#4ECDC4",
     questionFontWeight = 500,
     itemBorderRadius = 14,
+    itemPaddingX = 24,
+    itemPaddingY = 20,
+    answerSpacing = 12,
     gap = 10,
     padding = 16,
     containerBorderRadius = 20,
@@ -293,6 +305,9 @@ export default function FAQAccordion({
                     questionFontWeight={questionFontWeight}
                     itemBackgroundColor={itemBackgroundColor}
                     borderRadius={itemBorderRadius}
+                    paddingX={itemPaddingX}
+                    paddingY={itemPaddingY}
+                    answerSpacing={answerSpacing}
                     fontSize={fontSize}
                 />
             ))}
@@ -437,5 +452,30 @@ addPropertyControls(FAQAccordion, {
         min: 0,
         max: 40,
         unit: "px",
+    },
+    itemPaddingX: {
+        type: ControlType.Number,
+        title: "Item Padding X",
+        defaultValue: 24,
+        min: 0,
+        max: 64,
+        unit: "px",
+    },
+    itemPaddingY: {
+        type: ControlType.Number,
+        title: "Item Padding Y",
+        defaultValue: 20,
+        min: 0,
+        max: 64,
+        unit: "px",
+    },
+    answerSpacing: {
+        type: ControlType.Number,
+        title: "Answer Spacing",
+        defaultValue: 12,
+        min: 0,
+        max: 48,
+        unit: "px",
+        description: "Gap between the question and answer text.",
     },
 })
