@@ -92,7 +92,6 @@ function FAQRow({
     fontSize,
     questionFontWeight,
 }: FAQRowProps) {
-    const iconBorderColor = isOpen ? accentColor : borderColor
     const iconColor = isOpen ? accentColor : answerColor
 
     return (
@@ -129,21 +128,15 @@ function FAQRow({
                     {item.question}
                 </span>
 
-                {/* Toggle icon — rotates 45° on open, stroke swaps to accent */}
+                {/* Toggle icon — rotates 45° on open */}
                 <motion.div
                     animate={{ rotate: isOpen ? 45 : 0 }}
                     transition={{ type: "spring", stiffness: 320, damping: 26 }}
                     style={{
-                        width: 28,
-                        height: 28,
-                        borderRadius: "50%",
-                        border: `1.5px solid ${iconBorderColor}`,
-                        backgroundColor: "transparent",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         flexShrink: 0,
-                        transition: "border-color 0.25s ease",
                     }}
                 >
                     <PlusIcon color={iconColor} />
