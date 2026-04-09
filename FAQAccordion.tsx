@@ -59,7 +59,7 @@ function PlusIcon({ color }: { color: string }) {
     )
 }
 
-function CloseIcon() {
+function CloseIcon({ color }: { color: string }) {
     return (
         <svg
             width="11"
@@ -70,7 +70,7 @@ function CloseIcon() {
         >
             <path
                 d="M1 1L10 10M10 1L1 10"
-                stroke="white"
+                stroke={color}
                 strokeWidth="1.75"
                 strokeLinecap="round"
             />
@@ -84,10 +84,12 @@ interface FAQRowProps {
     item: FAQItem
     isOpen: boolean
     onToggle: () => void
+    font: object
     questionColor: string
     answerColor: string
     borderColor: string
     accentColor: string
+    itemBackgroundColor: string
     borderRadius: number
     fontSize: number
 }
@@ -96,17 +98,23 @@ function FAQRow({
     item,
     isOpen,
     onToggle,
+    font,
     questionColor,
     answerColor,
     borderColor,
     accentColor,
+    itemBackgroundColor,
     borderRadius,
     fontSize,
 }: FAQRowProps) {
+    const iconBorderColor = isOpen ? accentColor : borderColor
+    const iconColor = isOpen ? accentColor : answerColor
+
     return (
         <div
             onClick={onToggle}
             style={{
+                backgroundColor: itemBackgroundColor,
                 border: `1px solid ${borderColor}`,
                 borderRadius,
                 padding: "20px 24px",
@@ -126,8 +134,9 @@ function FAQRow({
             >
                 <span
                     style={{
-                        color: questionColor,
+                        ...font,
                         fontSize,
+                        color: questionColor,
                         fontWeight: 500,
                         lineHeight: 1.4,
                     }}
@@ -135,25 +144,25 @@ function FAQRow({
                     {item.question}
                 </span>
 
-                {/* Toggle icon */}
+                {/* Toggle icon — always outlined, stroke swaps to accent when open */}
                 <div
                     style={{
                         width: 28,
                         height: 28,
                         borderRadius: "50%",
-                        border: isOpen ? "none" : `1.5px solid ${borderColor}`,
-                        backgroundColor: isOpen ? accentColor : "transparent",
+                        border: `1.5px solid ${iconBorderColor}`,
+                        backgroundColor: "transparent",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         flexShrink: 0,
-                        transition: "background-color 0.2s ease",
+                        transition: "border-color 0.2s ease",
                     }}
                 >
                     {isOpen ? (
-                        <CloseIcon />
+                        <CloseIcon color={iconColor} />
                     ) : (
-                        <PlusIcon color={answerColor} />
+                        <PlusIcon color={iconColor} />
                     )}
                 </div>
             </div>
@@ -171,8 +180,9 @@ function FAQRow({
                     >
                         <p
                             style={{
-                                color: answerColor,
+                                ...font,
                                 fontSize: fontSize - 1,
+                                color: answerColor,
                                 lineHeight: 1.65,
                                 margin: "12px 0 0 0",
                             }}
@@ -192,7 +202,9 @@ interface FAQAccordionProps {
     faqs?: FAQItem[]
     initialOpenIndex?: number
     allowMultiple?: boolean
+    font?: object
     backgroundColor?: string
+    itemBackgroundColor?: string
     questionColor?: string
     answerColor?: string
     borderColor?: string
@@ -202,7 +214,6 @@ interface FAQAccordionProps {
     padding?: number
     containerBorderRadius?: number
     fontSize?: number
-    fontFamily?: string
     style?: React.CSSProperties
 }
 
@@ -217,7 +228,9 @@ export default function FAQAccordion({
     faqs = defaultFAQs,
     initialOpenIndex = 0,
     allowMultiple = false,
+    font = {},
     backgroundColor = "#0D0D1A",
+    itemBackgroundColor = "transparent",
     questionColor = "#FFFFFF",
     answerColor = "rgba(255,255,255,0.55)",
     borderColor = "rgba(255,255,255,0.14)",
@@ -227,7 +240,6 @@ export default function FAQAccordion({
     padding = 16,
     containerBorderRadius = 20,
     fontSize = 16,
-    fontFamily = "Inter, system-ui, sans-serif",
     style,
     ...rest
 }: FAQAccordionProps) {
@@ -257,7 +269,6 @@ export default function FAQAccordion({
                 display: "flex",
                 flexDirection: "column",
                 gap,
-                fontFamily,
                 boxSizing: "border-box",
                 width: "100%",
                 ...style,
@@ -270,10 +281,12 @@ export default function FAQAccordion({
                     item={item}
                     isOpen={openIndexes.has(index)}
                     onToggle={() => toggle(index)}
+                    font={font}
                     questionColor={questionColor}
                     answerColor={answerColor}
                     borderColor={borderColor}
                     accentColor={accentColor}
+                    itemBackgroundColor={itemBackgroundColor}
                     borderRadius={itemBorderRadius}
                     fontSize={fontSize}
                 />
@@ -322,11 +335,31 @@ addPropertyControls(FAQAccordion, {
         description: "Allow more than one item open at once.",
     },
 
+    // ── Typography
+    font: {
+        type: ControlType.Font,
+        title: "Font",
+        controls: "basic",
+    },
+    fontSize: {
+        type: ControlType.Number,
+        title: "Font Size",
+        defaultValue: 16,
+        min: 12,
+        max: 28,
+        unit: "px",
+    },
+
     // ── Colours
     backgroundColor: {
         type: ControlType.Color,
         title: "Background",
         defaultValue: "#0D0D1A",
+    },
+    itemBackgroundColor: {
+        type: ControlType.Color,
+        title: "Item Background",
+        defaultValue: "transparent",
     },
     questionColor: {
         type: ControlType.Color,
@@ -347,6 +380,7 @@ addPropertyControls(FAQAccordion, {
         type: ControlType.Color,
         title: "Accent",
         defaultValue: "#4ECDC4",
+        description: "Stroke colour of the icon when the item is open.",
     },
 
     // ── Layout
@@ -381,20 +415,5 @@ addPropertyControls(FAQAccordion, {
         min: 0,
         max: 40,
         unit: "px",
-    },
-
-    // ── Typography
-    fontSize: {
-        type: ControlType.Number,
-        title: "Font Size",
-        defaultValue: 16,
-        min: 12,
-        max: 28,
-        unit: "px",
-    },
-    fontFamily: {
-        type: ControlType.String,
-        title: "Font Family",
-        defaultValue: "Inter, system-ui, sans-serif",
     },
 })
