@@ -92,6 +92,7 @@ interface FAQRowProps {
     itemBackgroundColor: string
     borderRadius: number
     fontSize: number
+    questionFontWeight: number
 }
 
 function FAQRow({
@@ -106,6 +107,7 @@ function FAQRow({
     itemBackgroundColor,
     borderRadius,
     fontSize,
+    questionFontWeight,
 }: FAQRowProps) {
     const iconBorderColor = isOpen ? accentColor : borderColor
     const iconColor = isOpen ? accentColor : answerColor
@@ -136,8 +138,8 @@ function FAQRow({
                     style={{
                         ...font,
                         fontSize,
+                        fontWeight: questionFontWeight,
                         color: questionColor,
-                        fontWeight: 500,
                         lineHeight: 1.4,
                     }}
                 >
@@ -209,6 +211,7 @@ interface FAQAccordionProps {
     answerColor?: string
     borderColor?: string
     accentColor?: string
+    questionFontWeight?: number
     itemBorderRadius?: number
     gap?: number
     padding?: number
@@ -235,6 +238,7 @@ export default function FAQAccordion({
     answerColor = "rgba(255,255,255,0.55)",
     borderColor = "rgba(255,255,255,0.14)",
     accentColor = "#4ECDC4",
+    questionFontWeight = 500,
     itemBorderRadius = 14,
     gap = 10,
     padding = 16,
@@ -286,6 +290,7 @@ export default function FAQAccordion({
                     answerColor={answerColor}
                     borderColor={borderColor}
                     accentColor={accentColor}
+                    questionFontWeight={questionFontWeight}
                     itemBackgroundColor={itemBackgroundColor}
                     borderRadius={itemBorderRadius}
                     fontSize={fontSize}
@@ -348,6 +353,23 @@ addPropertyControls(FAQAccordion, {
         min: 12,
         max: 28,
         unit: "px",
+    },
+    questionFontWeight: {
+        type: ControlType.Enum,
+        title: "Q. Weight",
+        defaultValue: 500,
+        options: [100, 200, 300, 400, 500, 600, 700, 800, 900],
+        optionTitles: [
+            "100 Thin",
+            "200 ExtraLight",
+            "300 Light",
+            "400 Regular",
+            "500 Medium",
+            "600 SemiBold",
+            "700 Bold",
+            "800 ExtraBold",
+            "900 Black",
+        ],
     },
 
     // ── Colours
