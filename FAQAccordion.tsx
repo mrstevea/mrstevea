@@ -38,7 +38,7 @@ const defaultFAQs: FAQItem[] = [
     },
 ]
 
-// ─── Icon Components ─────────────────────────────────────────────────────────
+// ─── Icon Component ───────────────────────────────────────────────────────────
 
 function PlusIcon({ color }: { color: string }) {
     return (
@@ -51,25 +51,6 @@ function PlusIcon({ color }: { color: string }) {
         >
             <path
                 d="M6 1V11M1 6H11"
-                stroke={color}
-                strokeWidth="1.75"
-                strokeLinecap="round"
-            />
-        </svg>
-    )
-}
-
-function CloseIcon({ color }: { color: string }) {
-    return (
-        <svg
-            width="11"
-            height="11"
-            viewBox="0 0 11 11"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-        >
-            <path
-                d="M1 1L10 10M10 1L1 10"
                 stroke={color}
                 strokeWidth="1.75"
                 strokeLinecap="round"
@@ -148,8 +129,10 @@ function FAQRow({
                     {item.question}
                 </span>
 
-                {/* Toggle icon — always outlined, stroke swaps to accent when open */}
-                <div
+                {/* Toggle icon — rotates 45° on open, stroke swaps to accent */}
+                <motion.div
+                    animate={{ rotate: isOpen ? 45 : 0 }}
+                    transition={{ type: "spring", stiffness: 320, damping: 26 }}
                     style={{
                         width: 28,
                         height: 28,
@@ -160,15 +143,11 @@ function FAQRow({
                         alignItems: "center",
                         justifyContent: "center",
                         flexShrink: 0,
-                        transition: "border-color 0.2s ease",
+                        transition: "border-color 0.25s ease",
                     }}
                 >
-                    {isOpen ? (
-                        <CloseIcon color={iconColor} />
-                    ) : (
-                        <PlusIcon color={iconColor} />
-                    )}
-                </div>
+                    <PlusIcon color={iconColor} />
+                </motion.div>
             </div>
 
             {/* Answer (animated) */}
@@ -179,7 +158,10 @@ function FAQRow({
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: "auto", opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+                        transition={{
+                            height: { type: "spring", stiffness: 320, damping: 32 },
+                            opacity: { duration: 0.2, ease: "easeOut" },
+                        }}
                         style={{ overflow: "hidden" }}
                     >
                         <p
