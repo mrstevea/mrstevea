@@ -11,6 +11,9 @@ interface Testimonial {
     title: string
 }
 
+// Framer font controls return a CSSProperties-compatible object
+type FontValue = CSSProperties
+
 // ─── Default data ─────────────────────────────────────────────────────────────
 
 const defaultCol1: Testimonial[] = [
@@ -82,6 +85,33 @@ const defaultCol3: Testimonial[] = [
     },
 ]
 
+// ─── Font defaults ────────────────────────────────────────────────────────────
+
+const defaultQuoteFont: FontValue = {
+    fontFamily: "Inter, sans-serif",
+    fontSize: 17,
+    fontWeight: 600,
+    lineHeight: 1.45,
+    letterSpacing: "-0.01em",
+    color: "#1A1A1A",
+}
+
+const defaultNameFont: FontValue = {
+    fontFamily: "Inter, sans-serif",
+    fontSize: 13,
+    fontWeight: 600,
+    lineHeight: 1.3,
+    color: "#1A1A1A",
+}
+
+const defaultRoleFont: FontValue = {
+    fontFamily: "Inter, sans-serif",
+    fontSize: 12,
+    fontWeight: 400,
+    lineHeight: 1.4,
+    color: "#888888",
+}
+
 // ─── Keyframes injected once ──────────────────────────────────────────────────
 
 const STYLE_ID = "testimonial-scroll-keyframes"
@@ -128,16 +158,20 @@ function TestimonialCard({
     testimonial,
     cardBackground,
     cardBorderColor,
-    quoteColor,
-    metaColor,
+    iconColor,
     borderRadius,
+    quoteFont,
+    nameFont,
+    roleFont,
 }: {
     testimonial: Testimonial
     cardBackground: string
     cardBorderColor: string
-    quoteColor: string
-    metaColor: string
+    iconColor: string
     borderRadius: number
+    quoteFont: FontValue
+    nameFont: FontValue
+    roleFont: FontValue
 }) {
     return (
         <div
@@ -150,37 +184,20 @@ function TestimonialCard({
                 boxSizing: "border-box",
             }}
         >
-            <QuoteIcon color={quoteColor} />
+            <QuoteIcon color={iconColor} />
             <p
                 style={{
                     margin: "0 0 24px",
-                    fontSize: 17,
-                    fontWeight: 600,
-                    lineHeight: 1.45,
-                    color: quoteColor,
-                    letterSpacing: "-0.01em",
+                    ...quoteFont,
                 }}
             >
                 {testimonial.quote}
             </p>
             <div>
-                <div
-                    style={{
-                        fontSize: 13,
-                        fontWeight: 600,
-                        color: quoteColor,
-                        marginBottom: 2,
-                    }}
-                >
+                <div style={{ marginBottom: 2, ...nameFont }}>
                     {testimonial.name}
                 </div>
-                <div
-                    style={{
-                        fontSize: 12,
-                        color: metaColor,
-                        fontWeight: 400,
-                    }}
-                >
+                <div style={{ ...roleFont }}>
                     {testimonial.title}
                 </div>
             </div>
@@ -196,22 +213,28 @@ function ScrollColumn({
     reverse,
     cardBackground,
     cardBorderColor,
-    quoteColor,
-    metaColor,
+    iconColor,
     borderRadius,
+    quoteFont,
+    nameFont,
+    roleFont,
 }: {
     testimonials: Testimonial[]
     duration: number
     reverse: boolean
     cardBackground: string
     cardBorderColor: string
-    quoteColor: string
-    metaColor: string
+    iconColor: string
     borderRadius: number
+    quoteFont: FontValue
+    nameFont: FontValue
+    roleFont: FontValue
 }) {
     injectKeyframes()
 
-    const items = testimonials.length > 0 ? testimonials : [{ quote: "Add a testimonial…", name: "Name", title: "Title" }]
+    const items = testimonials.length > 0
+        ? testimonials
+        : [{ quote: "Add a testimonial…", name: "Name", title: "Title" }]
     const doubled = [...items, ...items]
 
     const trackStyle: CSSProperties = {
@@ -219,7 +242,15 @@ function ScrollColumn({
         willChange: "transform",
     }
 
-    const sharedCardProps = { cardBackground, cardBorderColor, quoteColor, metaColor, borderRadius }
+    const sharedCardProps = {
+        cardBackground,
+        cardBorderColor,
+        iconColor,
+        borderRadius,
+        quoteFont,
+        nameFont,
+        roleFont,
+    }
 
     return (
         <div style={{ flex: 1, overflow: "hidden", minWidth: 0 }}>
@@ -242,10 +273,12 @@ interface Props {
     background: string
     cardBackground: string
     cardBorderColor: string
-    quoteColor: string
-    metaColor: string
+    iconColor: string
     borderRadius: number
     alternateDirection: boolean
+    quoteFont: FontValue
+    nameFont: FontValue
+    roleFont: FontValue
     col1: Testimonial[]
     col2: Testimonial[]
     col3: Testimonial[]
@@ -255,8 +288,8 @@ interface Props {
  * TestimonialScroll
  *
  * An infinite-scrolling testimonial grid with top/bottom fade masks.
- * Drop this file into your Framer project — all testimonials are
- * editable directly from the properties panel.
+ * All testimonials and typography are fully editable from the
+ * Framer properties panel.
  */
 export default function TestimonialScroll({
     speed = 35,
@@ -266,10 +299,12 @@ export default function TestimonialScroll({
     background = "#F2F2F0",
     cardBackground = "#FFFFFF",
     cardBorderColor = "#E8E8E8",
-    quoteColor = "#1A1A1A",
-    metaColor = "#888888",
+    iconColor = "#1A1A1A",
     borderRadius = 16,
     alternateDirection = true,
+    quoteFont = defaultQuoteFont,
+    nameFont = defaultNameFont,
+    roleFont = defaultRoleFont,
     col1 = defaultCol1,
     col2 = defaultCol2,
     col3 = defaultCol3,
@@ -279,7 +314,15 @@ export default function TestimonialScroll({
     const colSpeeds = [baseDuration, baseDuration * 1.25, baseDuration * 0.9]
     const colDirections = alternateDirection ? [false, true, false] : [false, false, false]
 
-    const sharedCardProps = { cardBackground, cardBorderColor, quoteColor, metaColor, borderRadius }
+    const sharedColProps = {
+        cardBackground,
+        cardBorderColor,
+        iconColor,
+        borderRadius,
+        quoteFont,
+        nameFont,
+        roleFont,
+    }
 
     const maskImage = `linear-gradient(
         to bottom,
@@ -316,7 +359,7 @@ export default function TestimonialScroll({
                         testimonials={col}
                         duration={colSpeeds[idx]}
                         reverse={colDirections[idx]}
-                        {...sharedCardProps}
+                        {...sharedColProps}
                     />
                 ))}
             </div>
@@ -346,6 +389,26 @@ const testimonialItem = {
 }
 
 addPropertyControls(TestimonialScroll, {
+    // ── Typography ──────────────────────────────────────────────────────────
+    quoteFont: {
+        type: ControlType.Font,
+        title: "Quote",
+        controls: "extended",
+        defaultValue: defaultQuoteFont,
+    },
+    nameFont: {
+        type: ControlType.Font,
+        title: "Name",
+        controls: "extended",
+        defaultValue: defaultNameFont,
+    },
+    roleFont: {
+        type: ControlType.Font,
+        title: "Role",
+        controls: "extended",
+        defaultValue: defaultRoleFont,
+    },
+    // ── Content ─────────────────────────────────────────────────────────────
     col1: {
         type: ControlType.Array,
         title: "Column 1",
@@ -361,6 +424,7 @@ addPropertyControls(TestimonialScroll, {
         title: "Column 3",
         control: testimonialItem,
     },
+    // ── Layout ──────────────────────────────────────────────────────────────
     speed: {
         type: ControlType.Number,
         title: "Speed",
@@ -404,6 +468,7 @@ addPropertyControls(TestimonialScroll, {
         enabledTitle: "Yes",
         disabledTitle: "No",
     },
+    // ── Colors ──────────────────────────────────────────────────────────────
     background: {
         type: ControlType.Color,
         title: "Background",
@@ -419,15 +484,10 @@ addPropertyControls(TestimonialScroll, {
         title: "Card Border",
         defaultValue: "#E8E8E8",
     },
-    quoteColor: {
+    iconColor: {
         type: ControlType.Color,
-        title: "Quote Color",
+        title: "Icon Color",
         defaultValue: "#1A1A1A",
-    },
-    metaColor: {
-        type: ControlType.Color,
-        title: "Meta Color",
-        defaultValue: "#888888",
     },
     borderRadius: {
         type: ControlType.Number,
