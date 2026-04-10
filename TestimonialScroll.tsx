@@ -6,89 +6,76 @@ import React, { CSSProperties } from "react"
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface Testimonial {
-    badge: string
     quote: string
     name: string
     title: string
 }
 
-// ─── Data ────────────────────────────────────────────────────────────────────
+// ─── Default data ─────────────────────────────────────────────────────────────
 
-const col1: Testimonial[] = [
+const defaultCol1: Testimonial[] = [
     {
-        badge: "5m tax filings reviewed per week",
         quote: "Complex tax documents that used to take hours to review are now handled in minutes.",
         name: "Accounting Director",
         title: "Director at a Global Accounting Firm",
     },
     {
-        badge: "$2M+ saved annually",
         quote: "You're honestly blowing my mind… you are literally going to save me millions of dollars.",
         name: "Golden Falcon",
         title: "Partner at a Global Acquisition Corp",
     },
     {
-        badge: "Financial model built in minutes",
         quote: "It was acting like a senior manager level financial modeler.",
         name: "Investment Analyst",
         title: "Analyst at a Private Equity Firm",
     },
     {
-        badge: "Automated 80% of reporting",
         quote: "I haven't touched a spreadsheet in three weeks. That alone is worth everything.",
         name: "Finance Director",
         title: "Director at a Mid-Market PE Fund",
     },
 ]
 
-const col2: Testimonial[] = [
+const defaultCol2: Testimonial[] = [
     {
-        badge: "10+ hours saved per investment review",
         quote: "If we can do that now… that's a game changer in my view.",
         name: "Asset Manager MD",
         title: "Head of Data at a Tier-1 Asset Manager",
     },
     {
-        badge: "30+ investment memos summarized per week",
         quote: "I wanted a tool to summarize investments… that would be a dream. And I think it's not a dream anymore.",
         name: "Portfolio Manager",
         title: "PM at a Leading Credit Fund",
     },
     {
-        badge: "Due diligence in hours, not days",
         quote: "The depth of analysis it produces overnight used to take my team a full week.",
         name: "Accounting Partner",
         title: "Partner at a National Accounting Firm",
     },
     {
-        badge: "3× faster deal screening",
         quote: "We're seeing deals we would have missed entirely. The speed changes everything.",
         name: "Managing Director",
         title: "MD at a Global Infrastructure Fund",
     },
 ]
 
-const col3: Testimonial[] = [
+const defaultCol3: Testimonial[] = [
     {
-        badge: "Replacing a full-time analyst's workload",
         quote: "This is really so powerful… I feel pretty confident this is going to be 100 times better than the previous concierge.",
         name: "Private Markets Investor",
         title: "Executive at a Top 5 Alternative Asset Manager",
     },
     {
-        badge: "$40k yearly cost reduction",
         quote: "In an hour, you've built something that potentially could save us 40k a year.",
         name: "Accounting Manager",
         title: "Manager at a Global Accounting Firm",
     },
     {
-        badge: "Real-time portfolio insights",
         quote: "It surfaced a covenant breach risk we almost missed. This isn't a nice-to-have anymore.",
         name: "Risk Officer",
         title: "CRO at a Regional Asset Manager",
     },
     {
-        badge: "Zero manual data entry",
         quote: "Our ops team went from data wrangling to actual analysis. Night and day difference.",
         name: "Operations Lead",
         title: "Head of Ops at a Growth Equity Firm",
@@ -137,62 +124,12 @@ function QuoteIcon({ color }: { color: string }) {
     )
 }
 
-function Badge({
-    text,
-    badgeBackground,
-    badgeTextColor,
-    dotColor,
-}: {
-    text: string
-    badgeBackground: string
-    badgeTextColor: string
-    dotColor: string
-}) {
-    return (
-        <div
-            style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                padding: "5px 12px",
-                borderRadius: 999,
-                background: badgeBackground,
-                marginBottom: 16,
-            }}
-        >
-            <div
-                style={{
-                    width: 7,
-                    height: 7,
-                    borderRadius: "50%",
-                    background: dotColor,
-                    flexShrink: 0,
-                }}
-            />
-            <span
-                style={{
-                    fontSize: 12,
-                    fontWeight: 500,
-                    color: badgeTextColor,
-                    lineHeight: 1,
-                    whiteSpace: "nowrap",
-                }}
-            >
-                {text}
-            </span>
-        </div>
-    )
-}
-
 function TestimonialCard({
     testimonial,
     cardBackground,
     cardBorderColor,
     quoteColor,
     metaColor,
-    badgeBackground,
-    badgeTextColor,
-    dotColor,
     borderRadius,
 }: {
     testimonial: Testimonial
@@ -200,9 +137,6 @@ function TestimonialCard({
     cardBorderColor: string
     quoteColor: string
     metaColor: string
-    badgeBackground: string
-    badgeTextColor: string
-    dotColor: string
     borderRadius: number
 }) {
     return (
@@ -217,12 +151,6 @@ function TestimonialCard({
             }}
         >
             <QuoteIcon color={quoteColor} />
-            <Badge
-                text={testimonial.badge}
-                badgeBackground={badgeBackground}
-                badgeTextColor={badgeTextColor}
-                dotColor={dotColor}
-            />
             <p
                 style={{
                     margin: "0 0 24px",
@@ -270,9 +198,6 @@ function ScrollColumn({
     cardBorderColor,
     quoteColor,
     metaColor,
-    badgeBackground,
-    badgeTextColor,
-    dotColor,
     borderRadius,
 }: {
     testimonials: Testimonial[]
@@ -282,30 +207,19 @@ function ScrollColumn({
     cardBorderColor: string
     quoteColor: string
     metaColor: string
-    badgeBackground: string
-    badgeTextColor: string
-    dotColor: string
     borderRadius: number
 }) {
     injectKeyframes()
 
-    const doubled = [...testimonials, ...testimonials]
+    const items = testimonials.length > 0 ? testimonials : [{ quote: "Add a testimonial…", name: "Name", title: "Title" }]
+    const doubled = [...items, ...items]
 
     const trackStyle: CSSProperties = {
         animation: `${reverse ? "tsScrollDown" : "tsScrollUp"} ${duration}s linear infinite`,
         willChange: "transform",
     }
 
-    const sharedCardProps = {
-        cardBackground,
-        cardBorderColor,
-        quoteColor,
-        metaColor,
-        badgeBackground,
-        badgeTextColor,
-        dotColor,
-        borderRadius,
-    }
+    const sharedCardProps = { cardBackground, cardBorderColor, quoteColor, metaColor, borderRadius }
 
     return (
         <div style={{ flex: 1, overflow: "hidden", minWidth: 0 }}>
@@ -330,19 +244,19 @@ interface Props {
     cardBorderColor: string
     quoteColor: string
     metaColor: string
-    badgeBackground: string
-    badgeTextColor: string
-    dotColor: string
     borderRadius: number
     alternateDirection: boolean
+    col1: Testimonial[]
+    col2: Testimonial[]
+    col3: Testimonial[]
 }
 
 /**
  * TestimonialScroll
  *
  * An infinite-scrolling testimonial grid with top/bottom fade masks.
- * Drop this file into your Framer project and it will appear in the
- * component panel ready to use.
+ * Drop this file into your Framer project — all testimonials are
+ * editable directly from the properties panel.
  */
 export default function TestimonialScroll({
     speed = 35,
@@ -354,34 +268,18 @@ export default function TestimonialScroll({
     cardBorderColor = "#E8E8E8",
     quoteColor = "#1A1A1A",
     metaColor = "#888888",
-    badgeBackground = "#EBEBEB",
-    badgeTextColor = "#444444",
-    dotColor = "#888888",
     borderRadius = 16,
     alternateDirection = true,
+    col1 = defaultCol1,
+    col2 = defaultCol2,
+    col3 = defaultCol3,
 }: Props) {
     const baseDuration = 180 / Math.max(speed, 1)
 
-    const colSpeeds = [
-        baseDuration,
-        baseDuration * 1.25,
-        baseDuration * 0.9,
-    ]
+    const colSpeeds = [baseDuration, baseDuration * 1.25, baseDuration * 0.9]
+    const colDirections = alternateDirection ? [false, true, false] : [false, false, false]
 
-    const colDirections = alternateDirection
-        ? [false, true, false]
-        : [false, false, false]
-
-    const sharedCardProps = {
-        cardBackground,
-        cardBorderColor,
-        quoteColor,
-        metaColor,
-        badgeBackground,
-        badgeTextColor,
-        dotColor,
-        borderRadius,
-    }
+    const sharedCardProps = { cardBackground, cardBorderColor, quoteColor, metaColor, borderRadius }
 
     const maskImage = `linear-gradient(
         to bottom,
@@ -428,7 +326,41 @@ export default function TestimonialScroll({
 
 // ─── Property Controls ────────────────────────────────────────────────────────
 
+const testimonialItem = {
+    type: ControlType.Object,
+    controls: {
+        quote: {
+            type: ControlType.String,
+            title: "Quote",
+            displayTextArea: true,
+        },
+        name: {
+            type: ControlType.String,
+            title: "Name",
+        },
+        title: {
+            type: ControlType.String,
+            title: "Title",
+        },
+    },
+}
+
 addPropertyControls(TestimonialScroll, {
+    col1: {
+        type: ControlType.Array,
+        title: "Column 1",
+        control: testimonialItem,
+    },
+    col2: {
+        type: ControlType.Array,
+        title: "Column 2",
+        control: testimonialItem,
+    },
+    col3: {
+        type: ControlType.Array,
+        title: "Column 3",
+        control: testimonialItem,
+    },
     speed: {
         type: ControlType.Number,
         title: "Speed",
@@ -495,21 +427,6 @@ addPropertyControls(TestimonialScroll, {
     metaColor: {
         type: ControlType.Color,
         title: "Meta Color",
-        defaultValue: "#888888",
-    },
-    badgeBackground: {
-        type: ControlType.Color,
-        title: "Badge BG",
-        defaultValue: "#EBEBEB",
-    },
-    badgeTextColor: {
-        type: ControlType.Color,
-        title: "Badge Text",
-        defaultValue: "#444444",
-    },
-    dotColor: {
-        type: ControlType.Color,
-        title: "Dot Color",
         defaultValue: "#888888",
     },
     borderRadius: {
