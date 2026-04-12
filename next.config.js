@@ -7,9 +7,8 @@ const nextConfig = {
       { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
     ],
   },
-  experimental: {
-    serverComponentsExternalPackages: ['@prisma/client', 'prisma', 'sharp'],
-  },
+  // Prisma and sharp must be bundled as external modules in the Node.js runtime
+  serverExternalPackages: ['@prisma/client', 'prisma'],
 };
 
 module.exports = nextConfig;
