@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { generateMealPlan } from "@/lib/ai/client";
+import type { MealPlanRequest } from "@/types";
 import { prisma } from "@/lib/db/client";
 import { auth } from "@/lib/auth/config";
 
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const plan = await generateMealPlan(parsed.data);
+    const plan = await generateMealPlan(parsed.data as MealPlanRequest);
     return NextResponse.json(plan, { status: 200 });
   } catch (err) {
     console.error("[/api/planner]", err);

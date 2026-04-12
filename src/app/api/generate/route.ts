@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { generateRecipe } from "@/lib/ai/client";
+import type { GenerationRequest } from "@/types";
 import { prisma } from "@/lib/db/client";
 import { auth } from "@/lib/auth/config";
 
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const result = await generateRecipe(parsed.data);
+    const result = await generateRecipe(parsed.data as GenerationRequest);
 
     // Optionally persist to DB if user is authenticated
     const session = await auth();

@@ -4,6 +4,27 @@
 
 import { useState, useRef, useCallback } from "react";
 
+// SpeechRecognition types aren't in all TS lib configs — define the minimum we need
+interface ISpeechRecognition extends EventTarget {
+  lang:            string;
+  continuous:      boolean;
+  interimResults:  boolean;
+  maxAlternatives: number;
+  onresult:        ((event: SpeechRecognitionEvent) => void) | null;
+  onerror:         ((event: SpeechRecognitionErrorEvent) => void) | null;
+  onend:           (() => void) | null;
+  start():         void;
+  stop():          void;
+}
+
+interface SpeechRecognitionEvent {
+  results: { [index: number]: { [index: number]: { transcript: string } } };
+}
+
+interface SpeechRecognitionErrorEvent {
+  error: string;
+}
+
 interface VoiceInputOptions {
   onResult:  (transcript: string) => void;
   onError?:  (err: string) => void;
@@ -11,11 +32,11 @@ interface VoiceInputOptions {
 }
 
 interface VoiceInputReturn {
-  isListening:  boolean;
-  isSupported:  boolean;
+  isListening:    boolean;
+  isSupported:    boolean;
   startListening: () => void;
   stopListening:  () => void;
-  transcript:   string;
+  transcript:     string;
 }
 
 export function useVoiceInput({
@@ -25,7 +46,7 @@ export function useVoiceInput({
 }: VoiceInputOptions): VoiceInputReturn {
   const [isListening, setIsListening] = useState(false);
   const [transcript,  setTranscript]  = useState("");
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<ISpeechRecognition | null>(null);
 
   const isSupported =
     typeof window !== "undefined" &&
@@ -37,25 +58,27 @@ export function useVoiceInput({
       return;
     }
 
-    const SpeechRecognition =
-      window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SR: new () => ISpeechRecognition =
+      (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
 
-    const recognition = new SpeechRecognition();
-    recognition.lang              = language;
-    recognition.continuous        = false;
-    recognition.interimResults    = false;
-    recognition.maxAlternatives   = 1;
+    const recognition = new SR();
+    recognition.lang             = language;
+    recognition.continuous       = false;
+    recognition.interimResults   = false;
+    recognition.maxAlternatives  = 1;
 
-    recognition.onresult = (event) => {
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
       const result = event.results[0][0].transcript.trim();
       setTranscript(result);
       onResult(result);
     };
 
-    recognition.onerror = (event) => {
-      const msg = event.error === "no-speech"
-        ? "No speech detected. Please try again."
-        : `Voice error: ${event.error}`;
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      const msg =
+        event.error === "no-speech"
+          ? "No speech detected. Please try again."
+          : `Voice error: ${event.error}`;
       onError?.(msg);
       setIsListening(false);
     };

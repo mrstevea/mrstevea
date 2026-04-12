@@ -39,7 +39,6 @@ async function withRetry<T>(
 // ─── JSON extraction helper ───────────────────────────────────────────────────
 
 function extractJSON(text: string): unknown {
-  // Strip markdown code fences if present
   const cleaned = text
     .replace(/^```(?:json)?\n?/m, "")
     .replace(/\n?```$/m, "")
@@ -54,15 +53,15 @@ export async function generateRecipe(
 ): Promise<GenerationResponse> {
   const userPrompt = buildRecipePrompt(req);
 
+  // Use the prompt-caching beta API so the static system prompt is cached
   const response = await withRetry(() =>
-    anthropic.messages.create({
+    anthropic.beta.promptCaching.messages.create({
       model:      MODEL,
       max_tokens: MAX_TOKENS,
       system: [
         {
-          type: "text",
-          text: RECIPE_SYSTEM_PROMPT,
-          // Prompt caching: system prompt is static — cache it
+          type:          "text",
+          text:          RECIPE_SYSTEM_PROMPT,
           cache_control: { type: "ephemeral" },
         },
       ],
@@ -70,28 +69,26 @@ export async function generateRecipe(
     })
   );
 
-  const content = response.content[0];
-  if (content.type !== "text") throw new Error("Unexpected response type");
+  const block = response.content[0];
+  if (block.type !== "text") throw new Error("Unexpected response type");
 
   let parsed: GenerationResponse;
   try {
-    parsed = extractJSON(content.text) as GenerationResponse;
+    parsed = extractJSON(block.text) as GenerationResponse;
   } catch {
-    // Fallback: return a minimal error structure instead of crashing
     throw new Error(
-      `AI response parsing failed. Raw: ${content.text.slice(0, 200)}`
+      `AI response parsing failed. Raw: ${block.text.slice(0, 200)}`
     );
   }
 
-  // Add generated metadata
-  parsed.recipe.id           = crypto.randomUUID();
-  parsed.recipe.slug         = slugify(parsed.recipe.title);
+  parsed.recipe.id            = crypto.randomUUID();
+  parsed.recipe.slug          = slugify(parsed.recipe.title);
   parsed.recipe.isAiGenerated = true;
-  parsed.recipe.totalTime    = parsed.recipe.prepTime + parsed.recipe.cookTime;
-  parsed.recipe.ratingAvg    = 0;
-  parsed.recipe.ratingCount  = 0;
-  parsed.recipe.saveCount    = 0;
-  parsed.recipe.createdAt    = new Date().toISOString();
+  parsed.recipe.totalTime     = parsed.recipe.prepTime + parsed.recipe.cookTime;
+  parsed.recipe.ratingAvg     = 0;
+  parsed.recipe.ratingCount   = 0;
+  parsed.recipe.saveCount     = 0;
+  parsed.recipe.createdAt     = new Date().toISOString();
 
   return parsed;
 }
@@ -114,20 +111,17 @@ export async function detectIngredientsFromImage(
               type:   "image",
               source: { type: "base64", media_type: mediaType, data: base64Image },
             },
-            {
-              type: "text",
-              text: INGREDIENT_DETECTION_PROMPT,
-            },
+            { type: "text", text: INGREDIENT_DETECTION_PROMPT },
           ],
         },
       ],
     })
   );
 
-  const content = response.content[0];
-  if (content.type !== "text") throw new Error("Unexpected response type");
+  const block = response.content[0];
+  if (block.type !== "text") throw new Error("Unexpected response type");
 
-  const parsed = extractJSON(content.text) as {
+  const parsed = extractJSON(block.text) as {
     ingredients: { name: string; category: string; confidence: string }[];
   };
   return parsed.ingredients;
@@ -149,17 +143,17 @@ export async function getSubstitutions(
     })
   );
 
-  const content = response.content[0];
-  if (content.type !== "text") throw new Error("Unexpected response type");
+  const block = response.content[0];
+  if (block.type !== "text") throw new Error("Unexpected response type");
 
-  return extractJSON(content.text) as {
+  return extractJSON(block.text) as {
     substitutions: {
-      name: string;
-      ratio: string;
-      notes: string;
+      name:           string;
+      ratio:          string;
+      notes:          string;
       dietaryBenefit: string | null;
-      tasteImpact: string;
-      bestFor: string;
+      tasteImpact:    string;
+      bestFor:        string;
     }[];
   };
 }
@@ -170,13 +164,13 @@ export async function generateMealPlan(req: MealPlanRequest) {
   const prompt = buildMealPlannerPrompt(req);
 
   const response = await withRetry(() =>
-    anthropic.messages.create({
+    anthropic.beta.promptCaching.messages.create({
       model:      MODEL,
       max_tokens: MAX_TOKENS,
       system: [
         {
-          type: "text",
-          text: "You are a professional meal planning chef and nutritionist. Generate practical, balanced, and budget-conscious meal plans. Always respond with valid JSON only.",
+          type:          "text",
+          text:          "You are a professional meal planning chef and nutritionist. Generate practical, balanced, and budget-conscious meal plans. Always respond with valid JSON only.",
           cache_control: { type: "ephemeral" },
         },
       ],
@@ -184,10 +178,10 @@ export async function generateMealPlan(req: MealPlanRequest) {
     })
   );
 
-  const content = response.content[0];
-  if (content.type !== "text") throw new Error("Unexpected response type");
+  const block = response.content[0];
+  if (block.type !== "text") throw new Error("Unexpected response type");
 
-  return extractJSON(content.text);
+  return extractJSON(block.text);
 }
 
 // ─── Waste Reduction ──────────────────────────────────────────────────────────
@@ -205,10 +199,10 @@ export async function getWasteReductionRecipes(
     })
   );
 
-  const content = response.content[0];
-  if (content.type !== "text") throw new Error("Unexpected response type");
+  const block = response.content[0];
+  if (block.type !== "text") throw new Error("Unexpected response type");
 
-  return extractJSON(content.text);
+  return extractJSON(block.text);
 }
 
 // ─── Utils ────────────────────────────────────────────────────────────────────

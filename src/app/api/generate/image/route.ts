@@ -3,8 +3,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { detectIngredientsFromImage } from "@/lib/ai/client";
 
-export const config = { api: { bodyParser: false } };
-
 const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
 
 export async function POST(req: NextRequest) {

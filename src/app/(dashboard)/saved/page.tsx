@@ -45,7 +45,15 @@ export default async function SavedPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {saved.map(({ recipe }) => (
-            <RecipeCard key={recipe.id} recipe={recipe} />
+            <RecipeCard
+              key={recipe.id}
+              recipe={{
+                ...recipe,
+                cuisine:  recipe.cuisine  ?? undefined,
+                imageUrl: recipe.imageUrl ?? undefined,
+                calories: recipe.calories ?? undefined,
+              }}
+            />
           ))}
         </div>
       )}
