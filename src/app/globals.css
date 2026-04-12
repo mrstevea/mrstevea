@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700;800&display=swap');
+
+@layer base {
+  :root {
+    --background:            45 33% 98%;
+    --foreground:            20 14% 10%;
+    --card:                  0 0% 100%;
+    --card-foreground:       20 14% 10%;
+    --popover:               0 0% 100%;
+    --popover-foreground:    20 14% 10%;
+    --primary:               24 95% 53%;
+    --primary-foreground:    0 0% 100%;
+    --secondary:             40 16% 94%;
+    --secondary-foreground:  20 14% 20%;
+    --muted:                 40 12% 96%;
+    --muted-foreground:      20 5% 45%;
+    --accent:                24 91% 53%;
+    --accent-foreground:     0 0% 100%;
+    --destructive:           0 84% 60%;
+    --destructive-foreground:0 0% 100%;
+    --border:                40 20% 88%;
+    --input:                 40 20% 88%;
+    --ring:                  24 95% 53%;
+    --radius:                0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-cream-50 text-stone-900 font-sans antialiased;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3 {
+    @apply font-display;
+  }
+}
+
+@layer components {
+  .forge-gradient {
+    @apply bg-gradient-to-br from-forge-500 to-forge-600;
+  }
+
+  .glass {
+    @apply bg-white/80 backdrop-blur-md border border-white/20;
+  }
+
+  /* Shimmer loading animation */
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      theme('colors.cream.100') 25%,
+      theme('colors.cream.200') 50%,
+      theme('colors.cream.100') 75%
+    );
+    background-size: 400% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar        { width: 6px; height: 6px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: theme('colors.cream.300'); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: theme('colors.cream.400'); }
+
+/* Focus visible outline */
+*:focus-visible {
+  outline: 2px solid theme('colors.forge.400');
+  outline-offset: 2px;
+}
