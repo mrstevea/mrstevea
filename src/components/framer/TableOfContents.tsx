@@ -2,7 +2,7 @@
  * TableOfContents — Framer Code Component
  *
  * Drop this file into Framer's code editor. It will:
- *   • Scan the page (or a scoped container) for h2 elements
+ *   • Scan the page (or a scoped container) for h3 elements
  *   • Render a clickable, smooth-scrolling ToC list
  *   • Highlight the active heading via IntersectionObserver
  *   • Optionally show a reading-progress bar
@@ -159,7 +159,7 @@ export default function TableOfContents({
             .replace(/\s+/g, "-")
             .replace(/^-+|-+$/g, "") || "heading"}-toc-${index}`
 
-    // Walk the DOM and collect all h2 elements, assigning IDs as needed
+    // Walk the DOM and collect all h3 elements, assigning IDs as needed
     const scanHeadings = useCallback((): HeadingItem[] => {
         const root = containerSelector
             ? document.querySelector<HTMLElement>(containerSelector)
@@ -167,7 +167,7 @@ export default function TableOfContents({
 
         if (!root) return []
 
-        return Array.from(root.querySelectorAll<HTMLElement>("h2")).map(
+        return Array.from(root.querySelectorAll<HTMLElement>("h3")).map(
             (el, i) => {
                 const text = el.textContent?.trim() || `Section ${i + 1}`
                 if (!el.id) el.id = makeId(text, i)
